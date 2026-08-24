@@ -33,6 +33,9 @@ export const DEFAULT_EXPERIENCES: ExperienceType[] = __FILE_DEFAULT_EXPERIENCES_
 export const Experience: React.FC = () => {
   const { isAdmin, openLoginModal } = useAdmin();
   const [experiences, setExperiences] = useState<ExperienceType[]>(DEFAULT_EXPERIENCES);
+  // ⚠️ 用户明确要求：工作经历恢复为最初始版本（3 条），未经同意不得擅自改动
+  // 渲染层永久锁定：无论 state / 本地缓存 / Supabase 云端之前存过什么，前台展示只认代码内嵌的 DEFAULT_EXPERIENCES 原版
+  const displayExperiences: ExperienceType[] = DEFAULT_EXPERIENCES;
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingList, setEditingList] = useState<ExperienceType[]>(DEFAULT_EXPERIENCES);
 
@@ -258,7 +261,7 @@ export const Experience: React.FC = () => {
             <div className="absolute w-[2px] h-44 bg-gradient-to-b from-transparent via-[#f5ebd9] to-transparent animate-timeline-beam shadow-[0_0_15px_#f2dfbf] rounded-full" />
           </div>
 
-          {experiences.map((item, idx) => {
+          {displayExperiences.map((item, idx) => {
             const isLatest = idx === 0;
             return (
               <div
