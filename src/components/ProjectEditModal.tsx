@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   X,
   Check,
@@ -38,6 +38,93 @@ export const ProjectEditModal: React.FC<ProjectEditModalProps> = ({
   if (!project || !isAdmin) return null;
 
   const [form, setForm] = useState<Project>({ ...project });
+
+  // ========================================================================
+  // 📅 年月选择器 (自动按最新年份排序的关键：保证 year 字段格式统一为 YYYY.MM)
+  //   - ymYear / ymMonth 是 select 下拉中的"年/月"选项值
+  //   - ymCustomMode: 当原有数据无法解析（如只写 2023 或格式特殊）时，切回原自由文本框
+  // ========================================================================
+  const YEAR_OPTIONS = useMemo(() => {
+    const thisYear = new Date().getFullYear();
+    const start = Math.min(2015, thisYear - 10);
+    const end = thisYear + 3;
+    const arr: number[] = [];
+    for (let y = end; y >= start; y--) arr.push(y);
+    return arr;
+  }, []);
+
+  const MONTH_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1); // 1~12
+
+  const parseYearMonth = (
+    yearStr?: string
+  ): { year: number | null; month: number | null; custom: boolean } => {
+    if (!yearStr || typeof yearStr !== 'string') {
+      return { year: null, month: null, custom: false };
+    }
+    const trimmed = yearStr.trim();
+    if (!trimmed) return { year: null, month: null, custom: false };
+
+    // 匹配：YYYY.MM / YYYY-MM / YYYY/MM / YYYY年MM月 / 或仅 YYYY
+    const strict = trimmed.match(
+      /^(\d{4})(?:[.\-\/年]\s*(\d{1,2})(?:[.\-\/月]\s*\d{1,2}\s*日?)?)?$/
+    );
+    if (strict) {
+      const y = parseInt(strict[1], 10);
+      const m = strict[2] ? parseInt(strict[2], 10) : null;
+      if (y >= 1900 && y <= 2100 && (!m || (m >= 1 && m <= 12))) {
+        return { year: y, month: m, custom: false };
+      }
+    }
+    // 范围格式："2023.08 - 2024.05" 用末端的年月
+    const rangeMatch = [...trimmed.matchAll(/(\d{4})(?:[.\-\/年](\d{1,2}))?/g)];
+    if (rangeMatch.length > 0) {
+      const last = rangeMatch[rangeMatch.length - 1];
+      const y = parseInt(last[1], 10);
+      const m = last[2] ? parseInt(last[2], 10) : null;
+      if (y >= 1900 && y <= 2100 && (!m || (m >= 1 && m <= 12))) {
+        return { year: y, month: m, custom: false };
+      }
+    }
+    // 无法解析：保留原字符串，交给用户手改
+    return { year: null, month: null, custom: true };
+  };
+
+  const initialYm = useMemo(() => parseYearMonth(project.year), [project.year]);
+  const [ymYear, setYmYear] = useState<number | ''>(initialYm.year ?? '');
+  const [ymMonth, setYmMonth] = useState<number | ''>(initialYm.month ?? '');
+  const [ymCustomMode, setYmCustomMode] = useState<boolean>(initialYm.custom || false);
+
+  // 当 project 变化（比如从 A 切到 B 编辑）时重新回填
+  useEffect(() => {
+    const ym = parseYearMonth(project?.year);
+    setYmYear(ym.year ?? '');
+    setYmMonth(ym.month ?? '');
+    setYmCustomMode(ym.custom || false);
+  }, [project?.id]);
+
+  // 当年月选择变化时，自动把 form.year 合并成 "YYYY.MM"（标准格式 → 排序正确）
+  useEffect(() => {
+    if (ymCustomMode) return; // 自定义模式下，不自动覆盖
+    if (ymYear === '' && ymMonth === '') return;
+
+    setForm((prev) => {
+      const y = typeof ymYear === 'number' ? ymYear : null;
+      const m = typeof ymMonth === 'number' ? ymMonth : null;
+      let nextYearStr = prev.year;
+      if (y && m) {
+        nextYearStr = `${y}.${String(m).padStart(2, '0')}`;
+      } else if (y && !m) {
+        // 只有年份没有月份：默认 12 月（排序时放在该年份最末尾）
+        nextYearStr = `${y}.12`;
+      } else if (y) {
+        nextYearStr = String(y);
+      }
+      if (nextYearStr === prev.year) return prev;
+      return { ...prev, year: nextYearStr };
+    });
+    // 依赖只需要下拉值变化，不需要 form.year（避免循环）
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ymYear, ymMonth, ymCustomMode]);
   const [coverTab, setCoverTab] = useState<'upload' | 'url'>('upload');
   const [pdfTab, setPdfTab] = useState<'url' | 'upload'>('url');
   const [newGalleryUrl, setNewGalleryUrl] = useState('');
@@ -309,26 +396,92 @@ export const ProjectEditModal: React.FC<ProjectEditModalProps> = ({
           {/* Basic Info: Year, Brand, Category, Location */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-[#12151e] border border-[#232734]">
             {/* Project Year / Date */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 sm:col-span-2">
               <div className="flex items-center justify-between">
                 <label className="block text-xs font-orbitron text-[#b4935d] flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5" /> 项目年份 / 日期 *
+                  <Calendar className="w-3.5 h-3.5" /> 项目年份 / 月份 *
                 </label>
-                <span className="text-[10px] text-[#8e877a]">
-                  自动按最新年份置顶排序
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-[#8e877a]">
+                    自动按最新年月置顶排序，NO. 01 即最新作品
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setYmCustomMode((v) => !v)}
+                    className={[
+                      'px-2 py-0.5 rounded text-[10px] font-orbitron transition-colors border cursor-pointer',
+                      ymCustomMode
+                        ? 'bg-[#b4935d]/10 border-[#b4935d]/40 text-[#d3b277]'
+                        : 'bg-[#14171f] border-[#2a2f3e] text-[#8e877a] hover:text-[#eee7db] hover:border-[#b4935d]/40',
+                    ].join(' ')}
+                  >
+                    {ymCustomMode ? '✅ 使用选择器' : '✏️ 自定义格式'}
+                  </button>
+                </div>
               </div>
-              <input
-                type="text"
-                required
-                value={form.year}
-                onChange={(e) => setForm({ ...form, year: e.target.value })}
-                placeholder="例如：2025.04 或 2024.06"
-                className="w-full px-3.5 py-2 rounded-lg bg-[#161922] border border-[#2a2f3e] focus:border-[#b4935d] text-[#eee7db] text-xs focus:outline-none transition-colors"
-              />
-              <p className="text-[10px] text-[#6b665c]">
-                支持格式如 2025.05、2024.06 或 2024年4月，保存后作品列表将自动按最新日期排列
-              </p>
+
+              {!ymCustomMode ? (
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 space-y-1">
+                    <span className="text-[10px] text-[#6b665c]">年份</span>
+                    <select
+                      required
+                      value={ymYear}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setYmYear(v === '' ? '' : parseInt(v, 10));
+                      }}
+                      className="w-full px-3.5 py-2 rounded-lg bg-[#161922] border border-[#2a2f3e] focus:border-[#b4935d] text-[#eee7db] text-xs focus:outline-none transition-colors cursor-pointer"
+                    >
+                      <option value="">-- 请选年份 --</option>
+                      {YEAR_OPTIONS.map((y) => (
+                        <option key={y} value={y}>
+                          {y} 年
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="w-px h-8 bg-[#2a2f3e]" />
+                  <div className="flex-1 space-y-1">
+                    <span className="text-[10px] text-[#6b665c]">月份（不选 = 该年 12 月）</span>
+                    <select
+                      value={ymMonth}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        setYmMonth(v === '' ? '' : parseInt(v, 10));
+                      }}
+                      className="w-full px-3.5 py-2 rounded-lg bg-[#161922] border border-[#2a2f3e] focus:border-[#b4935d] text-[#eee7db] text-xs focus:outline-none transition-colors cursor-pointer"
+                    >
+                      <option value="">全年（默认 12 月排序）</option>
+                      {MONTH_OPTIONS.map((m) => (
+                        <option key={m} value={m}>
+                          {m} 月
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <span className="text-[10px] text-[#6b665c]">当前保存值</span>
+                    <div className="px-3.5 py-2 rounded-lg bg-[#0d0f14] border border-[#232734] text-[#d3b277] text-xs font-orbitron tracking-wider truncate">
+                      {form.year || '—'}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <input
+                    type="text"
+                    required
+                    value={form.year}
+                    onChange={(e) => setForm({ ...form, year: e.target.value })}
+                    placeholder="如：2025.04、2024年6月、或范围 2023.08 — 2024.05"
+                    className="w-full px-3.5 py-2 rounded-lg bg-[#161922] border border-[#2a2f3e] focus:border-[#b4935d] text-[#eee7db] text-xs focus:outline-none transition-colors"
+                  />
+                  <p className="text-[10px] text-[#6b665c]">
+                    自定义模式：支持 2025.05、2024.06、2024年4月，或范围"2023.08 - 2024.05"（自动取末端日期排序）
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Service Brand */}
