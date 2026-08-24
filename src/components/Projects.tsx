@@ -10,6 +10,7 @@ import { useAdmin } from '../context/AdminContext';
 import { getPersistentItem, setPersistentItem } from '../utils/persistentStorage';
 import {
   fetchSectionData,
+  fetchSiteContent,
   saveSectionData,
   upsertSiteContent,
   isSupabaseConfigured,
@@ -203,6 +204,38 @@ export const Projects: React.FC = () => {
   const { isAdmin, openPdfManager, refreshTrigger, showToast: triggerGlobalToast } = useAdmin();
   const [projects, setProjects] = useState<Project[]>(() => sortProjectsByDateDesc(DEFAULT_PROJECTS_LIST));
 
+  // 合并散存的 project_N_title / _cover / _pdf / _brand / _year / _location 到 projects_list
+  const mergeScatteredProjectFields = async (list: Project[]): Promise<Project[]> => {
+    if (!isSupabaseConfigured()) return list;
+    const merged = [...list];
+    const maxN = Math.max(24, merged.length);
+    try {
+      for (let i = 0; i < maxN; i++) {
+        const n = i + 1;
+        const [title, cover, pdf, brand, year, location] = await Promise.all([
+          fetchSiteContent('projects', `project_${n}_title`),
+          fetchSiteContent('projects', `project_${n}_cover`),
+          fetchSiteContent('projects', `project_${n}_pdf`),
+          fetchSiteContent('projects', `project_${n}_brand`),
+          fetchSiteContent('projects', `project_${n}_year`),
+          fetchSiteContent('projects', `project_${n}_location`),
+        ]);
+        if (i < merged.length) {
+          // 对已有的项目进行字段覆盖（散存字段优先级 > projects_list 内嵌字段）
+          if (title) merged[i] = { ...merged[i], title };
+          if (cover) merged[i] = { ...merged[i], imageUrl: cover };
+          if (pdf) merged[i] = { ...merged[i], pdfUrl: pdf };
+          if (brand) merged[i] = { ...merged[i], brand };
+          if (year) merged[i] = { ...merged[i], year };
+          if (location) merged[i] = { ...merged[i], location };
+        }
+      }
+    } catch (e) {
+      console.warn('mergeScatteredProjectFields error:', e);
+    }
+    return merged;
+  };
+
   // Async load from Supabase and local cache on mount or refreshTrigger
   useEffect(() => {
     let isMounted = true;
@@ -215,7 +248,9 @@ export const Projects: React.FC = () => {
           DEFAULT_PROJECTS_LIST
         );
         if (isMounted && savedData && Array.isArray(savedData) && savedData.length > 0) {
-          const sorted = sortProjectsByDateDesc(savedData);
+          // 先合并散存的 project_N_* 字段，再排序展示
+          const merged = await mergeScatteredProjectFields(savedData);
+          const sorted = sortProjectsByDateDesc(merged);
           setProjects(sorted);
         }
       } catch (err) {
