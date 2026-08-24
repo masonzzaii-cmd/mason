@@ -120,12 +120,6 @@ const BrandCard: React.FC<{
 
       {/* Right Content / Info */}
       <div className={`flex-1 min-w-0 ${compact ? 'text-left' : 'w-full'}`}>
-        {brand.category && (
-          <p className="text-[10px] text-[#b4935d] font-orbitron tracking-wider flex items-center gap-1 truncate mb-0.5">
-            <span className="w-1 h-1 rounded-full bg-[#b4935d] flex-shrink-0" />
-            <span className="truncate">{brand.category}</span>
-          </p>
-        )}
         <h3
           className="text-xs sm:text-sm font-medium text-[#eee7db] group-hover:text-[#f3e3ca] transition-colors truncate"
           title={brand.name}
@@ -135,10 +129,6 @@ const BrandCard: React.FC<{
         {brand.enName ? (
           <p className="text-[10px] text-[#787265] font-orbitron tracking-widest uppercase truncate">
             {brand.enName}
-          </p>
-        ) : brand.highlightProject ? (
-          <p className="text-[10px] text-[#787265] truncate" title={brand.highlightProject}>
-            {brand.highlightProject}
           </p>
         ) : null}
       </div>
@@ -587,28 +577,6 @@ export const BrandPartners: React.FC = () => {
                     className="w-full px-3 py-2.5 rounded-xl bg-[#080a0f] border border-[#262c3d] focus:border-[#b4935d] text-[#eee7db] outline-none text-xs"
                   />
                 </div>
-                <div>
-                  <label className="block text-[#a89f91] mb-1.5 font-medium">分类类别</label>
-                  <input
-                    type="text"
-                    value={editingBrand.category || ''}
-                    onChange={(e) => setEditingBrand({ ...editingBrand, category: e.target.value })}
-                    placeholder="例如：头部央企地产 / 顶奢家居"
-                    className="w-full px-3 py-2.5 rounded-xl bg-[#080a0f] border border-[#262c3d] focus:border-[#b4935d] text-[#eee7db] outline-none text-xs"
-                  />
-                </div>
-              </div>
-
-              {/* 4. Highlight Project */}
-              <div>
-                <label className="block text-[#a89f91] mb-1.5 font-medium">合作代表作 / 简介备注</label>
-                <input
-                  type="text"
-                  value={editingBrand.highlightProject || ''}
-                  onChange={(e) => setEditingBrand({ ...editingBrand, highlightProject: e.target.value })}
-                  placeholder="例如：保利 · 天悦顶层复式全案"
-                  className="w-full px-3 py-2.5 rounded-xl bg-[#080a0f] border border-[#262c3d] focus:border-[#b4935d] text-[#eee7db] outline-none text-xs"
-                />
               </div>
 
               {/* Action Buttons */}
