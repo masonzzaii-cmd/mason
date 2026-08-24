@@ -328,3 +328,233 @@ export async function saveSectionData<T>(
     cloudSynced,
   };
 }
+
+// ============================================================
+// 全站 7 大板块全量数据导出 (用于生成代码 & 同步到 GitHub)
+// ============================================================
+
+export interface AllPortfolioExportData {
+  hero: any;
+  about: any;
+  coreSkills: any[];
+  softwareSkills: any[];
+  experiences: any[];
+  honors: any[];
+  projects: any[];
+  brandPartners: any[];
+  contact: any;
+  exportedAt: string;
+}
+
+/**
+ * 一次性从 Supabase 云端读取所有板块的最新数据
+ * 读取顺序: Hero / About / Skills / Experience / Honors / Projects / BrandPartners / Contact
+ * 每个板块都有二级降级策略: Supabase → 本地持久化存储 → 传入的默认值
+ */
+export async function fetchAllPortfolioData(defaults: {
+  hero: any;
+  about: any;
+  coreSkills: any[];
+  softwareSkills: any[];
+  experiences: any[];
+  honors: any[];
+  projects: any[];
+  brandPartners: any[];
+  contact: any;
+}): Promise<AllPortfolioExportData> {
+  const [
+    hero,
+    about,
+    coreSkills,
+    softwareSkills,
+    experiences,
+    honors,
+    projects,
+    brandPartners,
+    contact,
+  ] = await Promise.all([
+    fetchSectionData('hero', 'hero_content', 'mason_portfolio_hero_data', defaults.hero),
+    fetchSectionData('about', 'about_data', 'mason_portfolio_about_data', defaults.about),
+    fetchSectionData('skills', 'core_skills', 'mason_portfolio_core_skills', defaults.coreSkills),
+    fetchSectionData('skills', 'software_skills', 'mason_portfolio_software_skills', defaults.softwareSkills),
+    fetchSectionData('experience', 'experience_list', 'mason_portfolio_experiences', defaults.experiences),
+    fetchSectionData('honors', 'honors_list', 'mason_portfolio_honors_v2', defaults.honors),
+    fetchSectionData('projects', 'projects_list', 'mason_portfolio_projects_v2', defaults.projects),
+    fetchSectionData('brand_partners', 'brand_partners_list', 'mason_portfolio_brand_partners_v1', defaults.brandPartners),
+    fetchSectionData('contact', 'contact_info', 'mason_portfolio_contact_data', defaults.contact),
+  ]);
+
+  return {
+    hero,
+    about,
+    coreSkills,
+    softwareSkills,
+    experiences,
+    honors,
+    projects,
+    brandPartners,
+    contact,
+    exportedAt: new Date().toISOString(),
+  };
+}
+
+// ============================================================
+// 各板块 TypeScript 数据文件代码生成器
+// 输出与现有 src/data/*.ts、板块内 DEFAULT_* 变量 完全一致的格式
+// ============================================================
+
+/** Hero 板块 -> src/data/heroData.ts */
+export function generateHeroDataCode(hero: any): string {
+  return `import { HeroData } from '../types';
+
+// 来自 Supabase 云端最新同步的首页 Hero 配置
+export const DEFAULT_HERO_DATA: HeroData = ${JSON.stringify(hero, null, 2)};
+`;
+}
+
+/** About 板块 -> src/data/aboutData.ts */
+export function generateAboutDataCode(about: any): string {
+  return `import { AboutData } from '../types';
+
+// 来自 Supabase 云端最新同步的个人介绍配置
+export const DEFAULT_ABOUT_DATA: AboutData = ${JSON.stringify(about, null, 2)};
+`;
+}
+
+/** Skills 板块 -> src/data/skillsData.ts */
+export function generateSkillsDataCode(coreSkills: any[], softwareSkills: any[]): string {
+  return `import { Skill, SoftwareSkill } from '../types';
+
+// 专业技能熟练度配置 (从 Supabase 云端同步)
+export const DEFAULT_CORE_SKILLS: Skill[] = ${JSON.stringify(coreSkills, null, 2)};
+
+// 掌握的设计软件熟练度与图标配置 (从 Supabase 云端同步)
+export const DEFAULT_SOFTWARE_SKILLS: SoftwareSkill[] = ${JSON.stringify(softwareSkills, null, 2)};
+`;
+}
+
+/** Experience 板块 -> src/data/experienceData.ts */
+export function generateExperienceDataCode(experiences: any[]): string {
+  return `import { Experience } from '../types';
+
+// 来自 Supabase 云端最新同步的工作经历时间线
+export const DEFAULT_EXPERIENCES: Experience[] = ${JSON.stringify(experiences, null, 2)};
+`;
+}
+
+/** Honors 板块 -> src/data/honorsData.ts */
+export function generateHonorsDataCode(honors: any[]): string {
+  return `import { Honor } from '../types';
+
+// 来自 Supabase 云端最新同步的获奖荣誉与证书数据
+export const DEFAULT_HONORS_LIST: Honor[] = ${JSON.stringify(honors, null, 2)};
+`;
+}
+
+/** Projects 板块 -> src/data/projectsData.ts */
+export function generateProjectsDataCode(projects: any[]): string {
+  return `import { Project } from '../types';
+import { sortProjectsByDateDesc } from '../utils/projectSorter';
+
+// 包含所有最新编辑的项目代表作、PDF链接名称与图片URL
+const RAW_DEFAULT_PROJECTS: Project[] = ${JSON.stringify(projects, null, 2)};
+
+export const DEFAULT_PROJECTS_LIST: Project[] = sortProjectsByDateDesc(RAW_DEFAULT_PROJECTS);
+`;
+}
+
+/** BrandPartners 板块 -> src/data/brandPartnersData.ts */
+export function generateBrandPartnersDataCode(partners: any[]): string {
+  return `import { BrandPartner } from '../types';
+
+// 来自 Supabase 云端最新同步的合作品牌数据
+export const DEFAULT_BRAND_PARTNERS: BrandPartner[] = ${JSON.stringify(partners, null, 2)};
+`;
+}
+
+/** Contact 板块 -> src/data/contactData.ts */
+export function generateContactDataCode(contact: any): string {
+  return `import { ContactData } from '../types';
+
+// 来自 Supabase 云端最新同步的联系信息
+export const DEFAULT_CONTACT_DATA: ContactData = ${JSON.stringify(contact, null, 2)};
+`;
+}
+
+/** 全量数据包 -> src/data/allPortfolioData.ts (用于备份/存档/一键回滚) */
+export function generateAllPortfolioDataCode(all: AllPortfolioExportData): string {
+  return `// 全站完整数据备份包
+// 包含 Hero / About / Skills / Experience / Honors / Projects / BrandPartners / Contact 全部板块
+// 图片/PDF URL、文字描述、证书与作品链接全部打包在内
+// 导出时间: ${all.exportedAt}
+
+export const PORTFOLIO_ALL_DATA = {
+  hero: ${JSON.stringify(all.hero, null, 2)},
+  about: ${JSON.stringify(all.about, null, 2)},
+  coreSkills: ${JSON.stringify(all.coreSkills, null, 2)},
+  softwareSkills: ${JSON.stringify(all.softwareSkills, null, 2)},
+  experiences: ${JSON.stringify(all.experiences, null, 2)},
+  honors: ${JSON.stringify(all.honors, null, 2)},
+  projects: ${JSON.stringify(all.projects, null, 2)},
+  brandPartners: ${JSON.stringify(all.brandPartners, null, 2)},
+  contact: ${JSON.stringify(all.contact, null, 2)},
+  exportedAt: ${JSON.stringify(all.exportedAt)},
+};
+`;
+}
+
+/** 根据当前活跃 tab 名生成对应代码字符串 */
+export function generateCodeByTab(
+  tabName: string,
+  all: AllPortfolioExportData
+): { code: string; filename: string } {
+  switch (tabName) {
+    case 'hero':
+      return { code: generateHeroDataCode(all.hero), filename: 'heroData.ts' };
+    case 'about':
+      return { code: generateAboutDataCode(all.about), filename: 'aboutData.ts' };
+    case 'skills':
+      return {
+        code: generateSkillsDataCode(all.coreSkills, all.softwareSkills),
+        filename: 'skillsData.ts',
+      };
+    case 'experience':
+      return {
+        code: generateExperienceDataCode(all.experiences),
+        filename: 'experienceData.ts',
+      };
+    case 'honors':
+      return { code: generateHonorsDataCode(all.honors), filename: 'honorsData.ts' };
+    case 'projects':
+      return { code: generateProjectsDataCode(all.projects), filename: 'projectsData.ts' };
+    case 'brandPartners':
+      return {
+        code: generateBrandPartnersDataCode(all.brandPartners),
+        filename: 'brandPartnersData.ts',
+      };
+    case 'contact':
+      return { code: generateContactDataCode(all.contact), filename: 'contactData.ts' };
+    case 'all':
+      return {
+        code: generateAllPortfolioDataCode(all),
+        filename: 'allPortfolioData.ts',
+      };
+    default:
+      return { code: '', filename: 'unknown.ts' };
+  }
+}
+
+/** 生成将要同步到 GitHub 的完整文件列表 (src/data/*.ts 的 8+1 个文件) */
+export function buildAllSyncFiles(all: AllPortfolioExportData): Array<{ path: string; content: string }> {
+  return [
+    { path: 'src/data/heroData.ts', content: generateHeroDataCode(all.hero) },
+    { path: 'src/data/aboutData.ts', content: generateAboutDataCode(all.about) },
+    { path: 'src/data/skillsData.ts', content: generateSkillsDataCode(all.coreSkills, all.softwareSkills) },
+    { path: 'src/data/experienceData.ts', content: generateExperienceDataCode(all.experiences) },
+    { path: 'src/data/honorsData.ts', content: generateHonorsDataCode(all.honors) },
+    { path: 'src/data/projectsData.ts', content: generateProjectsDataCode(all.projects) },
+    { path: 'src/data/brandPartnersData.ts', content: generateBrandPartnersDataCode(all.brandPartners) },
+    { path: 'src/data/contactData.ts', content: generateContactDataCode(all.contact) },
+    { path: 'src/data/allPortfolioData.ts', content: generateAllPortfolioDataCode(all) },
+  ];
+}

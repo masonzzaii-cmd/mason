@@ -47,6 +47,57 @@ export const DEFAULT_CORE_SKILLS: Skill[] = [
   { id: '5', name: '灵活变通思维', enName: 'Adaptive Thinking / Flexibility', percentage: 85 },
 ];
 
+export const DEFAULT_SOFTWARE_SKILLS: SoftwareSkill[] = [
+  {
+    id: 'autocad',
+    name: 'AutoCAD',
+    category: '2d',
+    proficiency: 95,
+    iconUrl: autocadImg,
+    description: '施工图绘制、节点深化、平立面布局设计',
+  },
+  {
+    id: 'sketchup',
+    name: 'SketchUp',
+    category: '3d',
+    proficiency: 92,
+    iconUrl: sketchupImg,
+    description: '方案推敲、快速建模、草图汇报与演示',
+  },
+  {
+    id: 'photoshop',
+    name: 'Photoshop',
+    category: 'render',
+    proficiency: 90,
+    iconUrl: photoshopImg,
+    description: '软装情绪板(Moodboard)、彩色平面图、效果图后期处理',
+  },
+  {
+    id: 'indesign',
+    name: 'InDesign',
+    category: 'presentation',
+    proficiency: 88,
+    iconUrl: indesignImg,
+    description: '软装提案PPT/PDF册子排版、方案精装归档',
+  },
+  {
+    id: 'ppt',
+    name: 'PowerPoint',
+    category: 'presentation',
+    proficiency: 95,
+    iconUrl: pptImg,
+    description: '客户汇报演示、方案意向表达、概念陈述',
+  },
+  {
+    id: 'ai-design',
+    name: 'AI 辅助设计',
+    category: 'render',
+    proficiency: 90,
+    iconUrl: aiChipImg,
+    description: 'Midjourney / SD / DALL-E 概念意向生成、情绪板发散与效果图渲染补全',
+  },
+];
+
 // Helper hook for smooth number rolling from 0 to target
 function useCountUp(end: number, duration: number = 1300, trigger: boolean = false, delay: number = 0) {
   const [count, setCount] = useState<number>(0);
@@ -424,59 +475,7 @@ export const Skills: React.FC = () => {
     };
   }, []);
 
-  // Software skills state with local and cloud persistence
-  const defaultSoftwareSkills: SoftwareSkill[] = [
-    {
-      id: 'autocad',
-      name: 'AutoCAD',
-      category: '2d',
-      proficiency: 95,
-      iconUrl: autocadImg,
-      description: '施工图绘制、节点深化、平立面布局设计'
-    },
-    {
-      id: 'sketchup',
-      name: 'SketchUp',
-      category: '3d',
-      proficiency: 92,
-      iconUrl: sketchupImg,
-      description: '方案推敲、快速建模、草图汇报与演示'
-    },
-    {
-      id: 'photoshop',
-      name: 'Photoshop',
-      category: 'render',
-      proficiency: 90,
-      iconUrl: photoshopImg,
-      description: '软装情绪板(Moodboard)、彩色平面图、效果图后期处理'
-    },
-    {
-      id: 'indesign',
-      name: 'InDesign',
-      category: 'presentation',
-      proficiency: 88,
-      iconUrl: indesignImg,
-      description: '软装提案PPT/PDF册子排版、方案精装归档'
-    },
-    {
-      id: 'ppt',
-      name: 'PowerPoint',
-      category: 'presentation',
-      proficiency: 95,
-      iconUrl: pptImg,
-      description: '客户汇报演示、方案意向表达、概念陈述'
-    },
-    {
-      id: 'ai-design',
-      name: 'AI 辅助设计',
-      category: 'render',
-      proficiency: 90,
-      iconUrl: aiChipImg,
-      description: 'Midjourney / SD / DALL-E 概念意向生成、情绪板发散与效果图渲染补全'
-    }
-  ];
-
-  const [softwareSkills, setSoftwareSkills] = useState<SoftwareSkill[]>(defaultSoftwareSkills);
+  const [softwareSkills, setSoftwareSkills] = useState<SoftwareSkill[]>(DEFAULT_SOFTWARE_SKILLS);
 
   // Load Software skills from Supabase and local cache
   useEffect(() => {
@@ -487,7 +486,7 @@ export const Skills: React.FC = () => {
           'skills',
           'software_skills',
           SOFTWARE_SKILLS_STORAGE_KEY,
-          defaultSoftwareSkills
+          DEFAULT_SOFTWARE_SKILLS
         );
         if (isMounted && saved && Array.isArray(saved) && saved.length > 0) {
           setSoftwareSkills(saved);
@@ -701,12 +700,12 @@ export const Skills: React.FC = () => {
   const handleResetDefault = async () => {
     if (!isAdmin) return;
     if (confirm('确定要重置恢复为默认软件技能列表吗？')) {
-      setSoftwareSkills(defaultSoftwareSkills);
+      setSoftwareSkills(DEFAULT_SOFTWARE_SKILLS);
       await saveSectionData<SoftwareSkill[]>(
         'skills',
         'software_skills',
         SOFTWARE_SKILLS_STORAGE_KEY,
-        defaultSoftwareSkills
+        DEFAULT_SOFTWARE_SKILLS
       );
       triggerToast('软件技能已恢复默认配置并同步');
     }
