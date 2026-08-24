@@ -13,6 +13,8 @@ import {
   saveSectionData,
   upsertSiteContent,
   isSupabaseConfigured,
+  snapshotSyncRead,
+  snapshotSyncWrite,
 } from '../utils/supabaseClient';
 import { sortProjectsByDateDesc } from '../utils/projectSorter';
 import {
@@ -201,9 +203,32 @@ const MagneticProjectCard: React.FC<{
 
 export const Projects: React.FC = () => {
   const { isAdmin, openPdfManager, refreshTrigger, showToast: triggerGlobalToast } = useAdmin();
-  const [projects, setProjects] = useState<Project[]>(() => sortProjectsByDateDesc(DEFAULT_PROJECTS_LIST));
 
-  // Async load from Supabase and local cache on mount or refreshTrigger
+  // ========================================================================
+  // 🔑 关键：useState 初始化时 **同步读取** localStorage 快照
+  //   —— 这样 React 第一次 render 就显示用户保存的新内容，
+  //      不会先闪一下默认的 20 套作品再异步替换回来。
+  // ========================================================================
+  const [initialData, initialSource] = (() => {
+    try {
+      const snap = snapshotSyncRead<Project[]>(STORAGE_KEY);
+      if (snap && Array.isArray(snap) && snap.length > 0) {
+        return [snap, 'snapshot_sync' as const];
+      }
+    } catch (e) {
+      console.warn('[Projects] 初始化同步读取快照失败（将使用默认数据）:', e);
+    }
+    return [DEFAULT_PROJECTS_LIST, 'defaults' as const];
+  })();
+
+  const [projects, setProjects] = useState<Project[]>(() => sortProjectsByDateDesc(initialData));
+  // 数据来源诊断 badge（帮助用户和我们一眼判断读的是哪一层）
+  const [dataSource, setDataSource] = useState<
+    'defaults' | 'snapshot_sync' | 'snapshot_async' | 'indexeddb' | 'cloud_latest'
+  >(initialSource);
+
+  // Async load: 挂载时 & refreshTrigger 变化时再次校验最新数据
+  // (同步初始化已经保证首屏就是用户保存的，这里主要是为了 IndexedDB / 云端可能更新了的情况)
   useEffect(() => {
     let isMounted = true;
     (async () => {
@@ -216,7 +241,15 @@ export const Projects: React.FC = () => {
         );
         if (isMounted && savedData && Array.isArray(savedData) && savedData.length > 0) {
           const sorted = sortProjectsByDateDesc(savedData);
-          setProjects(sorted);
+          // 仅当真正不一样时才 setState（避免不必要的重渲染）
+          setProjects((prev) => {
+            const prevJson = JSON.stringify(prev);
+            const nextJson = JSON.stringify(sorted);
+            if (prevJson === nextJson) return prev;
+            return sorted;
+          });
+          // 粗略判断：内容和初始的同步快照一致 -> snapshot_async；否则更高级
+          setDataSource((cur) => (cur === 'defaults' ? 'snapshot_async' : cur));
         }
       } catch (err) {
         console.warn('Projects load error:', err);
@@ -248,8 +281,22 @@ export const Projects: React.FC = () => {
   const saveProjects = async (newList: Project[]) => {
     const sortedList = sortProjectsByDateDesc(newList);
     setProjects(sortedList);
-    // ✅ 必须等待本地持久化（IndexedDB + LocalStorage）写入完成，才能保证刷新后立刻读回
+
+    // 🔑 先同步写一次 localStorage 快照（同步函数，0ms 完成）—— 双重保险
+    //   即使用户保存完 1ms 后就关闭/刷新页面，也能读回来
+    try {
+      snapshotSyncWrite(STORAGE_KEY, sortedList);
+    } catch (e) {
+      console.error('[Projects] 二次同步快照写失败:', e);
+    }
+    setDataSource('snapshot_sync');
+
+    // ✅ 等待 IndexedDB + LocalStorage + 远端同步链路全跑完
     const result = await saveSectionData<Project[]>('projects', 'projects_list', STORAGE_KEY, sortedList);
+
+    if (result.cloudSynced) {
+      setDataSource('cloud_latest');
+    }
 
     // Also sync summaries and cover images to site_content (best-effort, no await needed)
     if (isSupabaseConfigured()) {
@@ -415,9 +462,45 @@ export const Projects: React.FC = () => {
             <p className="font-orbitron text-xs tracking-[0.4em] text-[#b89965] mb-2 flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-[#b4935d]" /> FEATURED PROJECTS
             </p>
-            <h2 className="text-3xl sm:text-5xl font-light tracking-wide text-[#eee7db]">
-              项目作品
-            </h2>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h2 className="text-3xl sm:text-5xl font-light tracking-wide text-[#eee7db]">
+                项目作品
+              </h2>
+              {/* 数据来源诊断 Badge（只有管理员能看到） */}
+              {isAdmin && (
+                <span
+                  title={`Projects 板块当前显示数据来源：${dataSource} (共 ${projects.length} 套作品)`}
+                  className={[
+                    'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-orbitron tracking-wider select-none',
+                    dataSource === 'cloud_latest'
+                      ? 'bg-[#0d2e1a] text-[#55d77b] border border-[#55d77b]/30'
+                      : dataSource === 'snapshot_sync' || dataSource === 'snapshot_async'
+                        ? 'bg-[#1a1305] text-[#d3b277] border border-[#d3b277]/30'
+                        : dataSource === 'indexeddb'
+                          ? 'bg-[#071a26] text-[#5fa8e2] border border-[#5fa8e2]/30'
+                          : /* defaults */
+                            'bg-[#141418] text-[#8e877a] border border-[#2a2a31]'
+                  ].join(' ')}
+                >
+                  {dataSource === 'cloud_latest' && '☁️ CLOUD SYNC'}
+                  {dataSource === 'snapshot_sync' && '💾 LOCAL SNAPSHOT'}
+                  {dataSource === 'snapshot_async' && '💾 LOCAL RESTORE'}
+                  {dataSource === 'indexeddb' && '📦 INDEXEDDB'}
+                  {dataSource === 'defaults' && '🧩 DEFAULT DEMO'}
+                </span>
+              )}
+            </div>
+            {isAdmin && (
+              <p className="mt-2 text-[11px] text-[#8e877a] font-orbitron tracking-wide">
+                {dataSource === 'defaults'
+                  ? '当前显示默认作品（还未从本地恢复到您编辑过的内容）。'
+                  : dataSource === 'snapshot_sync' || dataSource === 'snapshot_async'
+                    ? '内容已从本地快照恢复，刷新后不会丢失。'
+                    : dataSource === 'indexeddb'
+                      ? '内容已从浏览器大容量存储恢复。'
+                      : /* cloud_latest */ '内容与 Supabase 云端完全同步。'}
+              </p>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-3">

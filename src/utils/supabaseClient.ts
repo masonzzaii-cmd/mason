@@ -258,7 +258,15 @@ export async function fetchSiteContent(
 
 /**
  * 高级封装：读取结构化数据 (JSON 对象或数组)
- * 优先级: Supabase 云端 -> 本地 IndexedDB/LocalStorage -> 传入的 fallback 默认数据
+ *
+ * 优先级 (LOCAL FIRST / 本地优先)：
+ *   1. 同步 localStorage 快照键 (刷新后 0ms 命中，保证首屏就是用户保存的内容)  ← fetchSectionData 内部用异步，但配套的 snapshotSyncRead 直接同步读
+ *   2. 本地 IndexedDB / LocalStorage (getPersistentItem)
+ *   3. Supabase 云端 (3s 超时，超期就返回本地数据，避免 iframe 预览下 CSP 卡 30s)
+ *   4. 传入的 fallback 默认数据
+ *
+ * 设计目标：iframe 预览 / 跨域隐私保护时，哪怕 Supabase 和 IndexedDB 都失败，
+ * 也要能从 localStorage 快照读回来。
  */
 export async function fetchSectionData<T>(
   section: string,
@@ -266,40 +274,232 @@ export async function fetchSectionData<T>(
   localStorageKey: string,
   fallback: T
 ): Promise<T> {
-  // 1. 尝试从 Supabase 读取
+  // =============================================================
+  // Step 1. 本地 localStorage 同步快照（最快，0ms 读）
+  // =============================================================
   try {
-    const cloudContent = await fetchSiteContent(section, fieldName);
-    if (cloudContent && cloudContent.trim()) {
-      try {
-        const parsed = JSON.parse(cloudContent) as T;
-        // 顺便同步回本地缓存，以便离线加速
-        await setPersistentItem(localStorageKey, parsed);
-        return parsed;
-      } catch {
-        // 如果不是 JSON，而泛型恰好是 string
-        return cloudContent as unknown as T;
-      }
+    const snap = snapshotSyncRead<T>(localStorageKey);
+    if (snap) {
+      // 如果命中快照，我们仍然异步启动一次 Supabase 拉取 + 本地回写
+      // (不阻塞返回) —— 保证用户刷新瞬间看到最新内容
+      scheduleCloudSyncIfNeeded(section, fieldName, localStorageKey, snap).catch(() => {});
+      return snap;
     }
   } catch (e) {
-    console.warn(`Supabase fetch failed for ${section}.${fieldName}, falling back to local:`, e);
+    console.warn(`[fetchSectionData] snapshot sync read failed for ${localStorageKey}:`, e);
   }
 
-  // 2. 尝试从本地 IndexedDB / LocalStorage 读取
+  // =============================================================
+  // Step 2. 本地 IndexedDB (getPersistentItem) + localStorage chunked fallback
+  // =============================================================
   try {
     const local = await getPersistentItem<T>(localStorageKey);
     if (local !== null && local !== undefined) {
+      // 写回同步快照，下次 0ms 命中
+      snapshotSyncWrite(localStorageKey, local);
+      scheduleCloudSyncIfNeeded(section, fieldName, localStorageKey, local).catch(() => {});
       return local;
     }
   } catch (e) {
     console.warn(`Local persistent storage read failed for ${localStorageKey}:`, e);
   }
 
-  // 3. 返回默认数据
+  // =============================================================
+  // Step 3. Supabase 云端 (带 3 秒超时保护，防止 iframe 环境 CSP / 网络卡死)
+  // =============================================================
+  try {
+    const cloudContent = await withTimeout(
+      fetchSiteContent(section, fieldName),
+      3000,
+      `site_content.${section}.${fieldName} fetch timeout`
+    );
+    if (cloudContent && cloudContent.trim()) {
+      try {
+        const parsed = JSON.parse(cloudContent) as T;
+        // 云端是最新的，同步写回本地两级存储 + 同步快照 (下次刷新就快了)
+        await setPersistentItem(localStorageKey, parsed);
+        snapshotSyncWrite(localStorageKey, parsed);
+        return parsed;
+      } catch {
+        return cloudContent as unknown as T;
+      }
+    }
+  } catch (e) {
+    console.warn(
+      `[fetchSectionData] Supabase skipped/failed for ${section}.${fieldName}, falling back to defaults:`,
+      (e as any)?.message || e
+    );
+  }
+
+  // =============================================================
+  // Step 4. 返回默认数据 (也写入同步快照，避免每次刷新都重新走这一圈)
+  // =============================================================
+  try {
+    snapshotSyncWrite(localStorageKey, fallback);
+  } catch {}
   return fallback;
 }
 
+/** Promise 超时包装：超时后 reject，避免 iframe 下请求卡住 */
+function withTimeout<T>(promise: Promise<T>, ms: number, reason: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(reason || 'Timeout')), ms);
+    }),
+  ]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
+
 /**
- * 高级封装：双写保存数据 (同时写入 Supabase 云端数据库与本地 IndexedDB 缓存)
+ * 后台异步：用当前已有的本地数据作为"乐观缓存"，然后去 Supabase 拉最新
+ * 如果 Supabase 返回了和本地不一样的新数据，就刷新本地两级存储 + 同步快照
+ * (本函数永远不 throw，调用方也不 await)
+ */
+async function scheduleCloudSyncIfNeeded<T>(
+  section: string,
+  fieldName: string,
+  localStorageKey: string,
+  currentLocal: T
+): Promise<void> {
+  try {
+    // 给它 5 秒慢慢跑，不阻塞用户
+    const cloudContent = await withTimeout(
+      fetchSiteContent(section, fieldName),
+      5000,
+      'cloud sync timeout (background)'
+    );
+    if (!cloudContent || !cloudContent.trim()) return;
+    try {
+      const parsed = JSON.parse(cloudContent) as T;
+      // 仅当云端确实"不一样"（更新）时覆盖本地
+      const cloudJson = JSON.stringify(parsed);
+      const localJson = JSON.stringify(currentLocal);
+      if (cloudJson !== localJson) {
+        await setPersistentItem(localStorageKey, parsed);
+        snapshotSyncWrite(localStorageKey, parsed);
+      }
+    } catch {}
+  } catch {}
+}
+
+// ======================================================================
+// 同步 localStorage 快照读写（完全绕过异步 IndexedDB / Supabase 包装函数）
+// 用于 useState 初始化同步读，保证第一次 render 就是用户保存的内容
+// 键名约定：snapshotPrefix.<localStorageKey>
+// 另实现分片写入（应对 5MB 单键限制）
+// ======================================================================
+const SNAP_KEY_PREFIX = '__SNAP_V2__.';
+const SNAP_CHUNK_SIZE = 900 * 1024; // 每片约 900KB
+
+function safeLSGet(k: string): string | null {
+  try {
+    return localStorage.getItem(k);
+  } catch {
+    return null;
+  }
+}
+
+function safeLSSet(k: string, v: string): boolean {
+  try {
+    localStorage.setItem(k, v);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function safeLSDel(k: string): void {
+  try {
+    localStorage.removeItem(k);
+  } catch {}
+}
+
+function snapClearOld(base: string): void {
+  const prefix = `${SNAP_KEY_PREFIX}${base}.`;
+  const toRemove: string[] = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(prefix)) toRemove.push(k);
+    }
+  } catch {}
+  toRemove.forEach(safeLSDel);
+  safeLSDel(`${SNAP_KEY_PREFIX}${base}`);
+}
+
+export function snapshotSyncWrite<T>(baseKey: string, value: T): boolean {
+  const fullBase = `${SNAP_KEY_PREFIX}${baseKey}`;
+  snapClearOld(fullBase);
+  try {
+    const serialized = JSON.stringify(value);
+    if (serialized.length < SNAP_CHUNK_SIZE) {
+      return safeLSSet(fullBase, serialized);
+    }
+    // 分片写入
+    const total = Math.ceil(serialized.length / SNAP_CHUNK_SIZE);
+    if (!safeLSSet(`${fullBase}.n`, String(total))) {
+      snapClearOld(fullBase);
+      return false;
+    }
+    for (let i = 0; i < total; i++) {
+      const piece = serialized.substring(i * SNAP_CHUNK_SIZE, (i + 1) * SNAP_CHUNK_SIZE);
+      if (!safeLSSet(`${fullBase}.${i}`, piece)) {
+        snapClearOld(fullBase);
+        return false;
+      }
+    }
+    return true;
+  } catch {
+    snapClearOld(fullBase);
+    return false;
+  }
+}
+
+export function snapshotSyncRead<T>(baseKey: string): T | null {
+  const fullBase = `${SNAP_KEY_PREFIX}${baseKey}`;
+  // 1) 单键直接读
+  const single = safeLSGet(fullBase);
+  if (single !== null) {
+    try {
+      return JSON.parse(single) as T;
+    } catch {
+      safeLSDel(fullBase);
+    }
+  }
+  // 2) 分片
+  const totalStr = safeLSGet(`${fullBase}.n`);
+  if (!totalStr) return null;
+  const total = parseInt(totalStr, 10);
+  if (!Number.isFinite(total) || total <= 0 || total > 1024) {
+    snapClearOld(fullBase);
+    return null;
+  }
+  const pieces: string[] = [];
+  for (let i = 0; i < total; i++) {
+    const p = safeLSGet(`${fullBase}.${i}`);
+    if (p === null) {
+      snapClearOld(fullBase);
+      return null;
+    }
+    pieces.push(p);
+  }
+  try {
+    return JSON.parse(pieces.join('')) as T;
+  } catch {
+    snapClearOld(fullBase);
+    return null;
+  }
+}
+
+/**
+ * 高级封装：双写保存数据 (同时写入 Supabase 云端数据库 + 本地 IndexedDB/LocalStorage + 同步快照)
+ * 写入顺序（按"刷新后能读回来"的可靠性排序）：
+ *   1. localStorage 同步快照 (0ms 读回，首屏渲染用)
+ *   2. setPersistentItem -> IndexedDB + chunked localStorage + 远端 Supabase
+ *   3. upsertSiteContent -> Supabase site_content 表 (另一套云端表)
  */
 export async function saveSectionData<T>(
   section: string,
@@ -307,14 +507,22 @@ export async function saveSectionData<T>(
   localStorageKey: string,
   data: T
 ): Promise<{ success: boolean; cloudSynced: boolean }> {
-  // 1. 先保存到本地 IndexedDB / LocalStorage (保证瞬间响应不卡顿)
+  // 1. ✅ 第一时间写"同步 localStorage 快照"——这是刷新后首屏渲染能否立刻命中的关键
+  //    (完全同步操作，无 await，浏览器写入 localStorage 是持久化的)
+  try {
+    snapshotSyncWrite(localStorageKey, data);
+  } catch (e) {
+    console.error(`snapshotSyncWrite failed for ${localStorageKey}:`, e);
+  }
+
+  // 2. 保存到本地 IndexedDB / LocalStorage (保证瞬间响应不卡顿)
   try {
     await setPersistentItem(localStorageKey, data);
   } catch (e) {
     console.error(`Failed to save to local persistent storage for ${localStorageKey}:`, e);
   }
 
-  // 2. 异步/同步写入 Supabase 云端数据库
+  // 3. 异步/同步写入 Supabase 云端数据库 site_content 表
   let cloudSynced = false;
   try {
     const contentString = typeof data === 'string' ? data : JSON.stringify(data);
