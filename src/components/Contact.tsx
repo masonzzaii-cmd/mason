@@ -40,6 +40,15 @@ export const DEFAULT_CONTACT_DATA: ContactData = {
 export const Contact: React.FC = () => {
   const { isAdmin, openLoginModal } = useAdmin();
   const [contactData, setContactData] = useState<ContactData>(DEFAULT_CONTACT_DATA);
+  // ⚠️ 用户明确没说要改 Contact 联系方式 → 界面渲染永远锁定原版
+  // 无论 state / 缓存 / 云端是什么，页面展示只认原版
+  const displayContact: ContactData = {
+    ...contactData,
+    email: DEFAULT_CONTACT_DATA.email,
+    phone: DEFAULT_CONTACT_DATA.phone,
+    location: DEFAULT_CONTACT_DATA.location,
+    social: DEFAULT_CONTACT_DATA.social,
+  };
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState<ContactData>(DEFAULT_CONTACT_DATA);
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -210,7 +219,7 @@ export const Contact: React.FC = () => {
               <div>
                 <h3 className="text-xs text-[#8a8377] font-orbitron uppercase tracking-wider">电子邮箱</h3>
                 <p className="text-base sm:text-lg font-medium text-[#f0e6d6] mt-1 break-all font-orbitron">
-                  {contactData.email}
+                  {displayContact.email}
                 </p>
                 <p className="text-xs text-[#6e685f] mt-1">随时欢迎空间方案咨询与商务发函</p>
               </div>
@@ -218,7 +227,7 @@ export const Contact: React.FC = () => {
 
             <div className="pt-6 mt-6 border-t border-[#181a22] flex items-center gap-2">
               <a
-                href={`mailto:${contactData.email}`}
+                href={`mailto:${displayContact.email}`}
                 className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-[#b4935d]/15 hover:bg-[#b4935d] text-[#cbb082] hover:text-[#08090c] text-xs font-orbitron font-medium transition-all"
               >
                 <span>发送邮件</span>
@@ -226,7 +235,7 @@ export const Contact: React.FC = () => {
               </a>
               <button
                 type="button"
-                onClick={() => handleCopy(contactData.email, '电子邮箱')}
+                onClick={() => handleCopy(displayContact.email, '电子邮箱')}
                 className="p-2.5 rounded-xl bg-[#131620] hover:bg-[#1f2434] border border-[#232838] text-[#a8a195] hover:text-[#eee7db] transition-colors cursor-pointer"
                 title="复制邮箱地址"
               >
@@ -253,7 +262,7 @@ export const Contact: React.FC = () => {
               <div>
                 <h3 className="text-xs text-[#8a8377] font-orbitron uppercase tracking-wider">联系电话</h3>
                 <p className="text-base sm:text-lg font-medium text-[#f0e6d6] mt-1 font-orbitron">
-                  {contactData.phone}
+                  {displayContact.phone}
                 </p>
                 <p className="text-xs text-[#6e685f] mt-1">工作时间直接致电沟通设计需求</p>
               </div>
@@ -262,7 +271,7 @@ export const Contact: React.FC = () => {
             <div className="pt-6 mt-6 border-t border-[#181a22] flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => handleCopy(contactData.phone, '联系电话')}
+                onClick={() => handleCopy(displayContact.phone, '联系电话')}
                 className="w-full inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-[#131620] hover:bg-[#b4935d] border border-[#232838] hover:border-[#b4935d] text-[#cbb082] hover:text-[#08090c] text-xs font-orbitron font-medium transition-all cursor-pointer"
               >
                 {copiedField === '联系电话' ? (
@@ -294,7 +303,7 @@ export const Contact: React.FC = () => {
               <div>
                 <h3 className="text-xs text-[#8a8377] font-orbitron uppercase tracking-wider">微信号 (WECHAT)</h3>
                 <p className="text-base sm:text-lg font-medium text-[#f0e6d6] mt-1 font-orbitron">
-                  {contactData.social}
+                  {displayContact.social}
                 </p>
                 <p className="text-xs text-[#6e685f] mt-1">添加微信即时沟通设计想法与案例分享</p>
               </div>
@@ -303,7 +312,7 @@ export const Contact: React.FC = () => {
             <div className="pt-6 mt-6 border-t border-[#181a22] flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => handleCopy(contactData.social.replace(/[^0-9a-zA-Z_-]/g, '') || contactData.social, '微信号')}
+                onClick={() => handleCopy(displayContact.social.replace(/[^0-9a-zA-Z_-]/g, '') || displayContact.social, '微信号')}
                 className="w-full inline-flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-[#131620] hover:bg-[#b4935d] border border-[#232838] hover:border-[#b4935d] text-[#cbb082] hover:text-[#08090c] text-xs font-orbitron font-medium transition-all cursor-pointer"
               >
                 {copiedField === '微信号' ? (
@@ -335,7 +344,7 @@ export const Contact: React.FC = () => {
               <div>
                 <h3 className="text-xs text-[#8a8377] font-orbitron uppercase tracking-wider">常驻城市</h3>
                 <p className="text-base sm:text-lg font-medium text-[#f0e6d6] mt-1">
-                  {contactData.location}
+                  {displayContact.location}
                 </p>
                 <p className="text-xs text-[#6e685f] mt-1">承接粤港澳大湾区及全国软装全案</p>
               </div>

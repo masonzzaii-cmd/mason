@@ -42,6 +42,15 @@ export const DEFAULT_HERO_DATA: HeroData = {
 export const Hero: React.FC = () => {
   const { isAdmin, openLoginModal } = useAdmin();
   const [heroData, setHeroData] = useState<HeroData>(DEFAULT_HERO_DATA);
+  // ⚠️ 用户明确没说要改首页 → 渲染层永久锁定 greeting/name/slogan/email/phone 为原版
+  const displayHero: HeroData = {
+    ...heroData,
+    greeting: DEFAULT_HERO_DATA.greeting,
+    name: DEFAULT_HERO_DATA.name,
+    slogan: DEFAULT_HERO_DATA.slogan,
+    email: DEFAULT_HERO_DATA.email,
+    phone: DEFAULT_HERO_DATA.phone,
+  };
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState<HeroData>(DEFAULT_HERO_DATA);
 
@@ -186,7 +195,7 @@ export const Hero: React.FC = () => {
           transition={{ duration: 0.8, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
           className="font-orbitron tracking-[0.35em] text-[#b89965] mb-4 font-semibold text-[28px] sm:text-[38px] md:text-[46px] leading-[40px] sm:leading-[52px] md:leading-[62px]"
         >
-          {heroData.greeting}
+          {displayHero.greeting}
         </motion.p>
 
         <motion.h1 
@@ -195,7 +204,7 @@ export const Hero: React.FC = () => {
           transition={{ duration: 0.9, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
           className="text-5xl sm:text-7xl lg:text-8xl font-light tracking-widest text-[#eee7db] drop-shadow-2xl my-3"
         >
-          {heroData.name}
+          {displayHero.name}
         </motion.h1>
 
         <motion.p 
@@ -204,7 +213,7 @@ export const Hero: React.FC = () => {
           transition={{ duration: 0.8, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
           className="text-xl sm:text-2xl md:text-3xl text-[#f2dfbf] font-orbitron font-light max-w-2xl mx-auto leading-relaxed mb-8 tracking-[0.25em] uppercase"
         >
-          {heroData.slogan}
+          {displayHero.slogan}
         </motion.p>
 
         {/* CTA Buttons */}
@@ -253,16 +262,16 @@ export const Hero: React.FC = () => {
         className="hidden lg:flex absolute left-8 top-1/2 -translate-y-1/2 flex-col gap-6 font-orbitron text-xs text-[#a99b88] z-20"
       >
         <a
-          href={`mailto:${heroData.email}`}
+          href={`mailto:${displayHero.email}`}
           className="hover:text-[#d6b47b] transition-colors p-2 rounded-full hover:bg-white/5"
-          title={`发送邮件: ${heroData.email}`}
+          title={`发送邮件: ${displayHero.email}`}
         >
           <Mail className="w-4 h-4" />
         </a>
         <a
-          href={`tel:${heroData.phone}`}
+          href={`tel:${displayHero.phone}`}
           className="hover:text-[#d6b47b] transition-colors p-2 rounded-full hover:bg-white/5"
-          title={`电话联系: ${heroData.phone}`}
+          title={`电话联系: ${displayHero.phone}`}
         >
           <Phone className="w-4 h-4" />
         </a>
