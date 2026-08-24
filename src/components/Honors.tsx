@@ -367,57 +367,105 @@ export const Honors: React.FC = () => {
     setIsProcessingImage(false);
   };
 
-  // Image compressor & reader
-  const handleFileChange = (file: File) => {
+  // Image compressor & reader (三级降级：Supabase → 压缩 → FileReader 直读)
+  const handleFileChange = async (file: File) => {
     if (!file.type.startsWith('image/')) {
       alert('请上传图片格式文件 (JPG, PNG, WebP等)');
       return;
     }
 
     setIsProcessingImage(true);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 1400;
-        const MAX_HEIGHT = 1400;
-        let width = img.width;
-        let height = img.height;
+    let lastError: any = null;
 
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height = Math.round((height * MAX_WIDTH) / width);
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width = Math.round((width * MAX_HEIGHT) / height);
-            height = MAX_HEIGHT;
-          }
+    // 1) 先尝试直接上传到 Supabase 云端（保存时就不用再转一次）
+    if (isSupabaseConfigured()) {
+      try {
+        const publicUrl = await uploadAssetToStorage(file, `honor_${editingHonor?.id || Date.now()}`);
+        if (publicUrl) {
+          setEditingHonor((prev) => (prev ? { ...prev, imageUrl: publicUrl } : null));
+          setIsProcessingImage(false);
+          return;
         }
+      } catch (supErr) {
+        lastError = supErr;
+        console.warn('[Honor] Supabase 上传失败，降级为本地压缩:', supErr);
+      }
+    }
 
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.88);
-          setEditingHonor((prev) => (prev ? { ...prev, imageUrl: compressedDataUrl } : null));
-        }
-        setIsProcessingImage(false);
-      };
-      img.onerror = () => {
-        setIsProcessingImage(false);
-        alert('解析图片失败，请重试');
-      };
-      img.src = e.target?.result as string;
-    };
-    reader.onerror = () => {
+    // 2) 降级：浏览器本地压缩为 JPG DataURL
+    try {
+      const dataUrlRaw = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target?.result as string);
+        reader.onerror = () => reject(new Error('文件读取失败'));
+        reader.readAsDataURL(file);
+      });
+
+      await new Promise<void>((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1400;
+          const MAX_HEIGHT = 1400;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height = Math.round((height * MAX_WIDTH) / width);
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width = Math.round((width * MAX_HEIGHT) / height);
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.88);
+            setEditingHonor((prev) => (prev ? { ...prev, imageUrl: compressedDataUrl } : null));
+          } else {
+            // 无 canvas 环境，使用原图 dataURL
+            setEditingHonor((prev) => (prev ? { ...prev, imageUrl: dataUrlRaw } : null));
+          }
+          setIsProcessingImage(false);
+          resolve();
+        };
+        img.onerror = () => reject(new Error('图片解析失败（格式不受支持）'));
+        img.src = dataUrlRaw;
+      });
+      return;
+    } catch (compressOrParseErr) {
+      lastError = compressOrParseErr;
+      console.warn('[Honor] 压缩/解析失败，尝试 FileReader 直读:', compressOrParseErr);
+    }
+
+    // 3) 终极降级：直接用 FileReader 的原始 DataURL（牺牲压缩率，但保证能用）
+    try {
+      const rawUrl = await new Promise<string>((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = (e) => resolve(e.target?.result as string);
+        r.onerror = () => reject(new Error('文件读取失败'));
+        r.readAsDataURL(file);
+      });
+      setEditingHonor((prev) => (prev ? { ...prev, imageUrl: rawUrl } : null));
       setIsProcessingImage(false);
-      alert('读取文件失败');
-    };
-    reader.readAsDataURL(file);
+      return;
+    } catch (finalErr) {
+      lastError = finalErr;
+    }
+
+    // 全部失败才提示
+    setIsProcessingImage(false);
+    const detail = lastError?.message || lastError?.code || '';
+    alert(
+      `解析图片失败，请重试。\n${detail ? '原因：' + detail + '\n' : ''}\n建议：① 把图片另存为 JPG 格式；② 切换到「粘贴图片链接」Tab 直接输入证书图片网址（例如图床 / 阿里云OSS / 腾讯云COS 直链）。`
+    );
   };
 
   const handleSaveForm = async (e: React.FormEvent) => {

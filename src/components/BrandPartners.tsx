@@ -256,26 +256,50 @@ export const BrandPartners: React.FC = () => {
     if (!file || !editingBrand) return;
 
     setIsProcessingImage(true);
+    let lastError: any = null;
     try {
+      // 1) 优先 Supabase 云端
       if (isSupabaseConfigured()) {
-        const publicUrl = await uploadAssetToStorage(file, `brand_${editingBrand.id || Date.now()}`);
-        if (publicUrl) {
-          setEditingBrand({
-            ...editingBrand,
-            logoUrl: publicUrl,
-          });
-          return;
+        try {
+          const publicUrl = await uploadAssetToStorage(file, `brand_${editingBrand.id || Date.now()}`);
+          if (publicUrl) {
+            setEditingBrand({
+              ...editingBrand,
+              logoUrl: publicUrl,
+            });
+            return;
+          }
+        } catch (supErr) {
+          lastError = supErr;
+          console.warn('[Brand Logo Modal] Supabase 上传失败，降级本地压缩:', supErr);
         }
       }
-      const dataUrl = await compressImage(file);
-      setEditingBrand({
-        ...editingBrand,
-        logoUrl: dataUrl,
-      });
-    } catch {
-      alert('上传 Logo 图片失败，请重试');
+      // 2) 降级压缩
+      try {
+        const dataUrl = await compressImage(file);
+        setEditingBrand({
+          ...editingBrand,
+          logoUrl: dataUrl,
+        });
+      } catch (compressErr) {
+        lastError = compressErr;
+        // 3) 终极降级：FileReader 直读
+        const rawDataUrl = await new Promise<string>((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = (ev) => resolve(ev.target?.result as string);
+          r.onerror = () => reject(new Error('图片读取失败'));
+          r.readAsDataURL(file);
+        });
+        setEditingBrand({ ...editingBrand, logoUrl: rawDataUrl });
+      }
+    } catch (err) {
+      const detail = lastError?.message || err?.message || '';
+      alert(
+        `上传 Logo 图片失败，请重试。\n${detail ? '原因：' + detail : ''}\n建议：把图片转成 JPG/PNG 再试，或直接粘贴品牌 Logo 的网络图片链接。`
+      );
     } finally {
       setIsProcessingImage(false);
+      if (e.target) e.target.value = '';
     }
   };
 

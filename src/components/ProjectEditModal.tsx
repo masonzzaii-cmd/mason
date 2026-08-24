@@ -87,24 +87,42 @@ export const ProjectEditModal: React.FC<ProjectEditModalProps> = ({
   };
 
   // Handle Cover Upload
+  // 容错策略：Supabase 上传成功 → 用云端 CDN URL；任何失败（桶不存在/RLS/网络/CSP沙盒）→ 自动降级压缩成本地 DataURL；最后才报错
   const handleCoverUpload = async (file: File) => {
     if (!file.type.startsWith('image/')) {
       alert('请选择图片文件');
       return;
     }
     setIsProcessing(true);
+    let lastError: any = null;
     try {
+      // 1. 先尝试上传到 Supabase 云端 (带独立 try/catch，失败不影响降级)
       if (isSupabaseConfigured()) {
-        const publicUrl = await uploadAssetToStorage(file, `proj_cover_${form.id || Date.now()}`);
-        if (publicUrl) {
-          setForm((prev) => ({ ...prev, imageUrl: publicUrl }));
-          return;
+        try {
+          const publicUrl = await uploadAssetToStorage(file, `proj_cover_${form.id || Date.now()}`);
+          if (publicUrl) {
+            setForm((prev) => ({ ...prev, imageUrl: publicUrl }));
+            return;
+          }
+        } catch (supErr) {
+          lastError = supErr;
+          console.warn('[Cover] Supabase 上传失败，自动降级为本地压缩图:', supErr);
         }
       }
+      // 2. 降级方案：本地压缩为 DataURL（保证任何情况下都能上传成功）
       const dataUrl = await compressImage(file, 1400, 0.9);
       setForm((prev) => ({ ...prev, imageUrl: dataUrl }));
     } catch (e) {
-      alert('处理图片失败，请重试');
+      lastError = e;
+      const detail =
+        lastError?.message || lastError?.code || '';
+      alert(
+        `处理图片失败，请重试。\n\n可能原因：${
+          detail
+            ? `(${detail})`
+            : '文件过大 / 格式不支持 / 浏览器沙盒限制'
+        }\n\n建议：① 把图片改为 JPG 格式再试；② 或改用「粘贴图片链接」Tab 直接输入已上传的图片网址。`
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -117,26 +135,54 @@ export const ProjectEditModal: React.FC<ProjectEditModalProps> = ({
       const newImages: string[] = [];
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        if (file.type.startsWith('image/')) {
-          if (isSupabaseConfigured()) {
-            try {
-              const publicUrl = await uploadAssetToStorage(file, `proj_gallery_${form.id || Date.now()}_${i}`);
-              if (publicUrl) {
-                newImages.push(publicUrl);
-                continue;
-              }
-            } catch (err) {}
+        if (!file.type.startsWith('image/')) continue;
+
+        let uploaded = false;
+        // 1) 优先 Supabase
+        if (isSupabaseConfigured()) {
+          try {
+            const publicUrl = await uploadAssetToStorage(file, `proj_gallery_${form.id || Date.now()}_${i}`);
+            if (publicUrl) {
+              newImages.push(publicUrl);
+              uploaded = true;
+            }
+          } catch (err) {
+            console.warn(`[Gallery ${i}] Supabase 上传失败，降级本地压缩:`, err);
           }
-          const dataUrl = await compressImage(file, 1400, 0.88);
-          newImages.push(dataUrl);
+        }
+        // 2) 降级本地压缩
+        if (!uploaded) {
+          try {
+            const dataUrl = await compressImage(file, 1400, 0.88);
+            newImages.push(dataUrl);
+          } catch (compressErr) {
+            console.warn(`[Gallery ${i}] 压缩失败，尝试直接读取原文件 DataURL`);
+            // 3) 终极降级：FileReader 直接读原文件
+            try {
+              const rawDataUrl = await new Promise<string>((resolve, reject) => {
+                const r = new FileReader();
+                r.onload = (e) => resolve(e.target?.result as string);
+                r.onerror = () => reject(new Error('File read fallback failed'));
+                r.readAsDataURL(file);
+              });
+              newImages.push(rawDataUrl);
+            } catch (fallbackErr) {
+              alert(`图集图片「${file.name || '第' + (i + 1) + '张'}」处理失败，已跳过。`);
+            }
+          }
         }
       }
-      setForm((prev) => ({
-        ...prev,
-        galleryImages: [...(prev.galleryImages || []), ...newImages],
-      }));
+      if (newImages.length > 0) {
+        setForm((prev) => ({
+          ...prev,
+          galleryImages: [...(prev.galleryImages || []), ...newImages],
+        }));
+      } else {
+        alert('没有成功添加任何图片，请检查文件格式后重试');
+      }
     } catch (e) {
-      alert('上传落地实景图片失败');
+      console.error('图集上传总体异常:', e);
+      alert('上传落地实景图片失败：' + (e?.message || '未知错误'));
     } finally {
       setIsProcessing(false);
     }
@@ -166,33 +212,53 @@ export const ProjectEditModal: React.FC<ProjectEditModalProps> = ({
       alert('请上传 PDF 格式文件');
       return;
     }
+    // 简易大文件保护：超过 25MB 提示（避免 base64 炸内存 / 页面卡顿）
+    if (file.size > 25 * 1024 * 1024) {
+      if (
+        !confirm(
+          '您选择的 PDF 超过 25MB，建议先压缩或改用「粘贴 PDF 链接」Tab。\n是否仍要继续（可能较慢）？'
+        )
+      ) {
+        return;
+      }
+    }
     setIsProcessing(true);
+    let lastError: any = null;
     try {
+      // 1) 先尝试上传到 Supabase 云端（带独立 try/catch）
       if (isSupabaseConfigured()) {
-        const publicUrl = await uploadAssetToStorage(file, `proj_pdf_${form.id || Date.now()}`);
-        if (publicUrl) {
-          setForm((prev) => ({
-            ...prev,
-            pdfUrl: publicUrl,
-            pdfFileName: file.name,
-          }));
-          return;
+        try {
+          const publicUrl = await uploadAssetToStorage(file, `proj_pdf_${form.id || Date.now()}`);
+          if (publicUrl) {
+            setForm((prev) => ({
+              ...prev,
+              pdfUrl: publicUrl,
+              pdfFileName: file.name,
+            }));
+            return;
+          }
+        } catch (supErr) {
+          lastError = supErr;
+          console.warn('[PDF] Supabase 上传失败，降级为本地 DataURL:', supErr);
         }
       }
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setForm((prev) => ({
-          ...prev,
-          pdfUrl: e.target?.result as string,
-          pdfFileName: file.name,
-        }));
-      };
-      reader.onerror = () => {
-        alert('读取 PDF 文件失败');
-      };
-      reader.readAsDataURL(file);
+      // 2) 降级：FileReader 读为 DataURL
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target?.result as string);
+        reader.onerror = () => reject(new Error('读取 PDF 文件失败'));
+        reader.readAsDataURL(file);
+      });
+      setForm((prev) => ({
+        ...prev,
+        pdfUrl: dataUrl,
+        pdfFileName: file.name,
+      }));
     } catch (err) {
-      alert('上传 PDF 文件失败，请重试');
+      const detail = err?.message || lastError?.message || '';
+      alert(
+        `上传 PDF 文件失败，请重试。\n\n${detail ? '原因：' + detail + '\n\n' : ''}建议：改用「粘贴 PDF 链接」Tab，输入已在公网可访问的 PDF 网址（例如腾讯文档 / 坚果云直链）。`
+      );
     } finally {
       setIsProcessing(false);
     }
