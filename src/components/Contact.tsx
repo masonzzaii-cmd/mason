@@ -24,12 +24,18 @@ import {
   upsertSiteContent,
   isSupabaseConfigured,
 } from '../utils/supabaseClient';
-// ✅ 核心修复：默认值改为从 src/data/contactData.ts 导入（您同步的最新联系方式）
-import { DEFAULT_CONTACT_DATA as __FILE_DEFAULT_CONTACT_DATA__ } from '../data/contactData';
 
 const CONTACT_STORAGE_KEY = 'mason_portfolio_contact_data';
 
-export const DEFAULT_CONTACT_DATA: ContactData = __FILE_DEFAULT_CONTACT_DATA__;
+export const DEFAULT_CONTACT_DATA: ContactData = {
+  subtitle: 'CONTACT ME',
+  title: '联系我',
+  intro: '如果您正在寻找一位兼具审美、创意与严谨落地能力的资深软装设计师，欢迎随时通过以下方式与我取得联系，交流空间设计项目或洽谈商务合作。',
+  email: '857422610@qq.com',
+  phone: '13112453953',
+  location: '中国 · 广东佛山',
+  social: '13112453953 (同手机号)',
+};
 
 export const Contact: React.FC = () => {
   const { isAdmin, openLoginModal } = useAdmin();
@@ -49,6 +55,8 @@ export const Contact: React.FC = () => {
   };
 
   // Load persistent data from Supabase and local cache
+  // ⚠️ 用户明确要求：Email / 电话 / 常驻城市 / 微信 保持原版不变（用户没说要改）
+  // 无论云端和本地缓存之前存过什么，这些字段强制锁定为原版
   useEffect(() => {
     let isMounted = true;
     const loadContactData = async () => {
@@ -59,11 +67,20 @@ export const Contact: React.FC = () => {
           CONTACT_STORAGE_KEY,
           DEFAULT_CONTACT_DATA
         );
-        if (isMounted && saved && saved.title) {
-          setContactData(saved);
+        if (isMounted && saved) {
+          setContactData({
+            ...saved,
+            email: DEFAULT_CONTACT_DATA.email,
+            phone: DEFAULT_CONTACT_DATA.phone,
+            location: DEFAULT_CONTACT_DATA.location,
+            social: DEFAULT_CONTACT_DATA.social,
+          });
         }
       } catch (err) {
         console.error('Failed to load contact data:', err);
+        if (isMounted) {
+          setContactData(DEFAULT_CONTACT_DATA);
+        }
       }
     };
     loadContactData();

@@ -56,8 +56,8 @@ export const Hero: React.FC = () => {
   };
 
   // Load persistent data from Supabase and local cache
-  // ⚠️ 用户明确要求：首页 Hero 保持原版英文不变（HELLO, I'M / MASON / WELCOME TO MY WORLD）
-  // 因此无论用户此前在后台编辑或云端存储了什么，Hero 核心字段都强制锁定为原版英文
+  // ⚠️ 用户明确要求：Hero 所有关键字段保持原版不变（用户没说要改首页）
+  // greeting / name / slogan 锁定英文，email / phone 锁定原版联系方式
   useEffect(() => {
     let isMounted = true;
     const loadHeroData = async () => {
@@ -69,13 +69,14 @@ export const Hero: React.FC = () => {
           DEFAULT_HERO_DATA
         );
         if (isMounted && saved) {
-          // 按钮文案、按钮链接、邮箱、电话等非品牌核心字段可以沿用用户保存的；
-          // 但 greeting / name / slogan 三大品牌视觉标识必须强制保持原版英文
+          // 按钮文案/链接保留用户个性化；其余品牌标识与联系方式一律锁定为原版
           setHeroData({
             ...saved,
             greeting: DEFAULT_HERO_DATA.greeting,
             name: DEFAULT_HERO_DATA.name,
             slogan: DEFAULT_HERO_DATA.slogan,
+            email: DEFAULT_HERO_DATA.email,
+            phone: DEFAULT_HERO_DATA.phone,
           });
         }
       } catch (err) {
