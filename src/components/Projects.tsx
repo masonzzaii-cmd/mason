@@ -248,26 +248,32 @@ export const Projects: React.FC = () => {
   const saveProjects = async (newList: Project[]) => {
     const sortedList = sortProjectsByDateDesc(newList);
     setProjects(sortedList);
+    // ✅ 必须等待本地持久化（IndexedDB + LocalStorage）写入完成，才能保证刷新后立刻读回
     const result = await saveSectionData<Project[]>('projects', 'projects_list', STORAGE_KEY, sortedList);
 
-    // Also sync summaries and cover images to site_content
+    // Also sync summaries and cover images to site_content (best-effort, no await needed)
     if (isSupabaseConfigured()) {
-      try {
-        for (let i = 0; i < Math.min(sortedList.length, 10); i++) {
-          const p = sortedList[i];
-          await upsertSiteContent('projects', `project_${i + 1}_title`, p.title);
-          if (p.imageUrl) {
-            await upsertSiteContent('projects', `project_${i + 1}_cover`, p.imageUrl);
+      (async () => {
+        try {
+          for (let i = 0; i < Math.min(sortedList.length, 10); i++) {
+            const p = sortedList[i];
+            await upsertSiteContent('projects', `project_${i + 1}_title`, p.title);
+            if (p.imageUrl) {
+              await upsertSiteContent('projects', `project_${i + 1}_cover`, p.imageUrl);
+            }
+            if (p.pdfUrl) {
+              await upsertSiteContent('projects', `project_${i + 1}_pdf`, p.pdfUrl);
+            }
           }
-          if (p.pdfUrl) {
-            await upsertSiteContent('projects', `project_${i + 1}_pdf`, p.pdfUrl);
-          }
-        }
-      } catch (e) {}
+        } catch (e) {}
+      })();
     }
 
     if (result.cloudSynced) {
       triggerGlobalToast('☁️ 项目代表作已成功同步至 Supabase 云端数据库！');
+    } else {
+      // 即便云端没同步，至少本地已成功持久化（刷新后能读回），给用户一个明确提示
+      triggerGlobalToast('✅ 项目已保存到本地浏览器，刷新页面不会丢失！配置好 GitHub Token 后一键同步即可上线。');
     }
   };
 
@@ -306,7 +312,7 @@ export const Projects: React.FC = () => {
     setEditingProject(newDraft);
   };
 
-  const handleSaveProject = (updated: Project) => {
+  const handleSaveProject = async (updated: Project) => {
     let updatedList: Project[];
     const exists = projects.some((p) => p.id === updated.id);
     if (exists) {
@@ -318,7 +324,8 @@ export const Projects: React.FC = () => {
     }
 
     const sortedList = sortProjectsByDateDesc(updatedList);
-    saveProjects(sortedList);
+    // ✅ 等待本地持久化写入完成，再关闭模态框 —— 避免用户在写文件前就刷新
+    await saveProjects(sortedList);
 
     // If currently open in detail modal, update activeProject too
     if (activeProject && activeProject.id === updated.id) {
