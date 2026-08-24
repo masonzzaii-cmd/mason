@@ -10,5 +10,5 @@ export const DEFAULT_CONTACT_DATA: ContactData = {
   email: '857422610@qq.com',
   phone: '13112453953',
   location: '中国 · 广东佛山',
-  social: '13112453953 (同手机号)',
+  social: 'DAIZICMS2',
 };
