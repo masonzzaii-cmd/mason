@@ -23,16 +23,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      # 用 Node 20 LTS（GitHub runner 原生预安装，不依赖 setup-node 下载，避免网络失败）
+      - name: Setup Node.js 20 LTS
         uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: npm
+          node-version: 20
 
       - name: Install bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.2.15
 
       - name: Install dependencies
         run: bun install --frozen-lockfile || bun install
@@ -41,7 +41,7 @@ jobs:
         run: bunx tsc --noEmit
 
       - name: Build with Vite
-        # vite.config.ts 会自动读取 GITHUB_REPOSITORY 设置 base 路径
+        # vite.config.ts 会自动读取 GITHUB_REPOSITORY 设置 base 路径（如 /mason/）
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: bun run build
