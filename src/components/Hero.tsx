@@ -35,7 +35,7 @@ export const DEFAULT_HERO_DATA: HeroData = {
   primaryBtnLink: '#about',
   secondaryBtnText: '与我交流',
   secondaryBtnLink: '#contact',
-  email: '857422610@qq.com',
+  email: 'masonzzall@outlook.com',
   phone: '13112453953',
 };
 
