@@ -24,20 +24,13 @@ import {
   upsertSiteContent,
   isSupabaseConfigured,
 } from '../utils/supabaseClient';
+// ✅ 核心修复：默认值改为从 src/data/heroData.ts 导入（您同步的最新内容），而不是内嵌写死常量
+// 保持 export 名称不变，兼容外部对 DEFAULT_HERO_DATA 的所有引用
+import { DEFAULT_HERO_DATA as __FILE_DEFAULT_HERO_DATA__ } from '../data/heroData';
 
 const HERO_STORAGE_KEY = 'mason_portfolio_hero_data';
 
-export const DEFAULT_HERO_DATA: HeroData = {
-  greeting: "HELLO, I'M",
-  name: 'MASON',
-  slogan: 'WELCOME TO MY WORLD',
-  primaryBtnText: '探索我的世界',
-  primaryBtnLink: '#about',
-  secondaryBtnText: '与我交流',
-  secondaryBtnLink: '#contact',
-  email: '857422610@qq.com',
-  phone: '13112453953',
-};
+export const DEFAULT_HERO_DATA: HeroData = __FILE_DEFAULT_HERO_DATA__;
 
 export const Hero: React.FC = () => {
   const { isAdmin, openLoginModal } = useAdmin();

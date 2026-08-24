@@ -23,9 +23,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { Honor } from '../types';
-import himalayaAwardImg from '../assets/images/himalaya_design_award_1786685738383.jpg';
-import scholarshipCertImg from '../assets/images/national_scholarship_cert_1786685536914.jpg';
-import bestEmployeeAwardImg from '../assets/images/best_employee_award_2018_1786689353907.jpg';
+import { DEFAULT_HONORS_LIST as __FILE_DEFAULT_HONORS_LIST__ } from '../data/honorsData';
 import { getPersistentItem, setPersistentItem } from '../utils/persistentStorage';
 import {
   fetchSectionData,
@@ -39,40 +37,7 @@ import { useAdmin } from '../context/AdminContext';
 const STORAGE_KEY = 'mason_portfolio_honors_v2';
 const FALLBACK_KEYS = ['mason_portfolio_honors', 'user_custom_honors', 'honors_data'];
 
-export const DEFAULT_HONORS_LIST: Honor[] = [
-  {
-    id: 'honor-1',
-    title: '2018年最佳优秀员工',
-    year: '2018年',
-    issuer: '广州大者装饰设计有限公司',
-    imageUrl: bestEmployeeAwardImg,
-    linkUrl: '',
-  },
-  {
-    id: 'honor-2',
-    title: '2015—2016学年度 国家励志奖学金荣誉证书',
-    year: '2015—2016年',
-    issuer: '江西省教育厅',
-    imageUrl: scholarshipCertImg,
-    linkUrl: '',
-  },
-  {
-    id: 'honor-3',
-    title: '2023 中国软装年度十佳空间设计奖',
-    year: '2023',
-    issuer: '中国室内装饰协会',
-    imageUrl: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1200&q=80',
-    linkUrl: '',
-  },
-  {
-    id: 'honor-4',
-    title: '2022 亚太室内设计精英邀请赛 商业展厅设计奖',
-    year: '2022',
-    issuer: 'APDC 亚太设计中心',
-    imageUrl: 'https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=1200&q=80',
-    linkUrl: '',
-  },
-];
+export const DEFAULT_HONORS_LIST: Honor[] = __FILE_DEFAULT_HONORS_LIST__;
 
 // Sub-component: 3D Tilt & Metallic Shimmer Honor Card
 const TiltHonorCard: React.FC<{

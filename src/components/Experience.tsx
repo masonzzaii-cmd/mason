@@ -23,48 +23,12 @@ import {
   upsertSiteContent,
   isSupabaseConfigured,
 } from '../utils/supabaseClient';
+// ✅ 核心修复：默认值改为从 src/data/experienceData.ts 导入（您同步的最新工作经历）
+import { DEFAULT_EXPERIENCES as __FILE_DEFAULT_EXPERIENCES__ } from '../data/experienceData';
 
 const EXPERIENCES_STORAGE_KEY = 'mason_portfolio_experiences';
 
-export const DEFAULT_EXPERIENCES: ExperienceType[] = [
-  {
-    id: 'exp-1',
-    period: '2021.03 — 2025.04',
-    company: '广州家和家居文化创意有限公司',
-    role: '资深软装设计师',
-    description: '负责品牌展厅、软装项目风格主题选定、色彩方案调配，深化设计方案制作，材料工艺对接及现场最终摆场与工程验收。',
-    highlights: [
-      '根据展厅项目风格、主题、色彩等结合市场时势以及国际米兰展趋势走向制作概念到深化方案',
-      '进行清单制作、细化及下单，整体把控项目产品选择及细节尺寸面料等工艺对接，与研发团队研发项目饰品工艺对接',
-      '协助采购团队及收货验收',
-      '跟进项目协助摆场及验收工作',
-    ],
-  },
-  {
-    id: 'exp-2',
-    period: '2020.04 — 2020.11',
-    company: '广州亦境空间设计有限公司',
-    role: '高级软装设计师',
-    description: '负责样板房与售楼部软装全过程设计，从概念深化、选型清单制作下单，到产品细节工艺对接、采购验收与现场摆场落实。',
-    highlights: [
-      '根据样板房/售楼部项目风格、主题、色彩制作概念到深化方案',
-      '进行清单制作、细化及下单，整体把控项目产品选择及细节尺寸面料等工艺对接，把控产品与空间结合度',
-      '协助采购团队收货验收，跟进项目现场摆场及最终验收工作',
-    ],
-  },
-  {
-    id: 'exp-3',
-    period: '2018.06 — 2020.02',
-    company: '广州大者装饰设计有限公司',
-    role: '初级软装设计师',
-    description: '负责地产样板房、售楼部等项目的软装概念至深化方案制作，产品选型清单编制，采购对接及摆场现场执行跟进。',
-    highlights: [
-      '独立完成售楼处与样板间全套软装PPT汇报与施工深化图纸编制',
-      '对接国内高品质面料及家具厂商，确保品质完成整个选品采购与物料跟催',
-      '收集、整理所需设计资料，跟进项目协助摆场工作',
-    ],
-  },
-];
+export const DEFAULT_EXPERIENCES: ExperienceType[] = __FILE_DEFAULT_EXPERIENCES__;
 
 export const Experience: React.FC = () => {
   const { isAdmin, openLoginModal } = useAdmin();
