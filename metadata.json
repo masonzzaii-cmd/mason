@@ -1,0 +1,6 @@
+{
+  "name": "Mind Explorer - MASON作品集",
+  "description": "资深软装设计师与空间创意设计者个人作品集",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

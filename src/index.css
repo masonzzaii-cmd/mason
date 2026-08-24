@@ -1,0 +1,196 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .font-orbitron {
+    font-family: 'Orbitron', sans-serif;
+  }
+}
+
+/* Custom noise texture overlay */
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.4'/%3E%3C/svg%3E");
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #050608;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2824;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #b4935d;
+}
+
+/* 3D Lanyard Card Animations & Styles */
+.lanyard-fixed {
+  perspective: 1200px;
+  filter: drop-shadow(0 28px 40px rgba(0,0,0,.45));
+}
+
+.lanyard-card {
+  transform-style: preserve-3d;
+  touch-action: none;
+  animation: lanyardFloat 5s ease-in-out infinite;
+}
+
+.lanyard-card.dragging {
+  animation: none;
+}
+
+.lanyard-face {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.lanyard-back {
+  transform: rotateY(180deg);
+}
+
+@keyframes lanyardFloat {
+  0%, 100% {
+    transform: rotateX(1deg) rotateY(-7deg) rotateZ(-1deg) translate3d(0, 0, 0);
+  }
+  50% {
+    transform: rotateX(3deg) rotateY(6deg) rotateZ(1deg) translate3d(0, 8px, 0);
+  }
+}
+
+/* Pulse animation for portal glow */
+@keyframes portalPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.35;
+  }
+  50% {
+    transform: scale(1.25);
+    opacity: 0.65;
+  }
+}
+
+.animate-portal-pulse {
+  animation: portalPulse 4s ease-in-out infinite;
+}
+
+/* Subtle floating animation for Hero profile image container */
+@keyframes heroFloat {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-hero-float {
+  animation: heroFloat 5s ease-in-out infinite;
+}
+
+/* Timeline Energy Light Beam Animation */
+@keyframes timelineBeam {
+  0% {
+    top: -15%;
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    top: 110%;
+    opacity: 0;
+  }
+}
+
+.animate-timeline-beam {
+  animation: timelineBeam 3.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Timeline Node Pulse Waves */
+@keyframes nodePulseWave {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+
+.animate-node-pulse {
+  animation: nodePulseWave 2.8s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+/* Honors Metallic Golden Shimmer Sweep */
+@keyframes goldenShimmer {
+  0% {
+    transform: translateX(-160%) skewX(-25deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.8;
+  }
+  50% {
+    transform: translateX(260%) skewX(-25deg);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(260%) skewX(-25deg);
+    opacity: 0;
+  }
+}
+
+.animate-golden-shimmer {
+  animation: goldenShimmer 5.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Dual-Track Infinite Marquee Animations */
+@keyframes marqueeLeft {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@keyframes marqueeRight {
+  0% {
+    transform: translate3d(-50%, 0, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.animate-marquee-left {
+  animation: marqueeLeft 42s linear infinite;
+  will-change: transform;
+}
+
+.animate-marquee-right {
+  animation: marqueeRight 42s linear infinite;
+  will-change: transform;
+}
+
+.pause-on-hover:hover .animate-marquee-left,
+.pause-on-hover:hover .animate-marquee-right {
+  animation-play-state: paused;
+}
+
