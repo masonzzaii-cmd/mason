@@ -7,13 +7,9 @@ import { ProjectPdfModal } from './ProjectPdfModal';
 import { ProjectEditModal } from './ProjectEditModal';
 import { ProjectCardImageCarousel } from './ProjectCardImageCarousel';
 import { useAdmin } from '../context/AdminContext';
-import { getPersistentItem, setPersistentItem } from '../utils/persistentStorage';
 import {
   fetchSectionData,
-  fetchSiteContent,
   saveSectionData,
-  upsertSiteContent,
-  isSupabaseConfigured,
 } from '../utils/supabaseClient';
 import { sortProjectsByDateDesc } from '../utils/projectSorter';
 import {
@@ -37,7 +33,6 @@ import {
 } from 'lucide-react';
 
 const STORAGE_KEY = 'mason_portfolio_projects_v2';
-const FALLBACK_KEYS = ['mason_portfolio_projects', 'user_custom_projects'];
 
 // Sub-component: Magnetic Spotlight & 3D Tilt Project Card
 const MagneticProjectCard: React.FC<{
@@ -204,47 +199,15 @@ export const Projects: React.FC = () => {
   const { isAdmin, openPdfManager, refreshTrigger, showToast: triggerGlobalToast } = useAdmin();
   const [projects, setProjects] = useState<Project[]>(() => sortProjectsByDateDesc(DEFAULT_PROJECTS_LIST));
 
-  // 合并散存的 project_N_title / _cover / _pdf / _brand / _year / _location 到 projects_list
-  const mergeScatteredProjectFields = async (list: Project[]): Promise<Project[]> => {
-    if (!isSupabaseConfigured()) return list;
-    const merged = [...list];
-    const maxN = Math.max(24, merged.length);
-    try {
-      for (let i = 0; i < maxN; i++) {
-        const n = i + 1;
-        const [title, cover, pdf, brand, year, location] = await Promise.all([
-          fetchSiteContent('projects', `project_${n}_title`),
-          fetchSiteContent('projects', `project_${n}_cover`),
-          fetchSiteContent('projects', `project_${n}_pdf`),
-          fetchSiteContent('projects', `project_${n}_brand`),
-          fetchSiteContent('projects', `project_${n}_year`),
-          fetchSiteContent('projects', `project_${n}_location`),
-        ]);
-        if (i < merged.length) {
-          // 对已有的项目进行字段覆盖（散存字段优先级 > projects_list 内嵌字段）
-          if (title) merged[i] = { ...merged[i], title };
-          if (cover) merged[i] = { ...merged[i], imageUrl: cover };
-          if (pdf) merged[i] = { ...merged[i], pdfUrl: pdf };
-          if (brand) merged[i] = { ...merged[i], brand };
-          if (year) merged[i] = { ...merged[i], year };
-          if (location) merged[i] = { ...merged[i], location };
-        }
-      }
-    } catch (e) {
-      console.warn('mergeScatteredProjectFields error:', e);
-    }
-    return merged;
-  };
-
-  // Async load from Supabase and local cache on mount or refreshTrigger
+  // Async load from local cache on mount or refreshTrigger
   useEffect(() => {
     let isMounted = true;
-    // 访客（非管理员）：直接使用代码中已固化的默认数据，确保国内秒开、内容确定，
-    // 不触发任何 Supabase 云端请求（国内访问不稳定会导致加载缓慢或命中旧缓存）。
+    // 访客（非管理员）：直接使用代码中已固化的默认数据，确保国内秒开、内容确定
     if (!isAdmin) {
       setProjects(sortProjectsByDateDesc(DEFAULT_PROJECTS_LIST));
       return;
     }
+    // 管理员：从本地 IndexedDB 读取编辑后的数据（不查云端，快且可靠）
     (async () => {
       try {
         const savedData = await fetchSectionData<Project[]>(
@@ -254,9 +217,7 @@ export const Projects: React.FC = () => {
           DEFAULT_PROJECTS_LIST
         );
         if (isMounted && savedData && Array.isArray(savedData) && savedData.length > 0) {
-          // 先合并散存的 project_N_* 字段，再排序展示
-          const merged = await mergeScatteredProjectFields(savedData);
-          const sorted = sortProjectsByDateDesc(merged);
+          const sorted = sortProjectsByDateDesc(savedData);
           setProjects(sorted);
         }
       } catch (err) {
@@ -289,27 +250,8 @@ export const Projects: React.FC = () => {
   const saveProjects = async (newList: Project[]) => {
     const sortedList = sortProjectsByDateDesc(newList);
     setProjects(sortedList);
-    const result = await saveSectionData<Project[]>('projects', 'projects_list', STORAGE_KEY, sortedList);
-
-    // Also sync summaries and cover images to site_content
-    if (isSupabaseConfigured()) {
-      try {
-        for (let i = 0; i < Math.min(sortedList.length, 10); i++) {
-          const p = sortedList[i];
-          await upsertSiteContent('projects', `project_${i + 1}_title`, p.title);
-          if (p.imageUrl) {
-            await upsertSiteContent('projects', `project_${i + 1}_cover`, p.imageUrl);
-          }
-          if (p.pdfUrl) {
-            await upsertSiteContent('projects', `project_${i + 1}_pdf`, p.pdfUrl);
-          }
-        }
-      } catch (e) {}
-    }
-
-    if (result.cloudSynced) {
-      triggerGlobalToast('☁️ 项目代表作已成功同步至 Supabase 云端数据库！');
-    }
+    await saveSectionData<Project[]>('projects', 'projects_list', STORAGE_KEY, sortedList);
+    triggerGlobalToast('✅ 项目代表作已保存到本地，刷新不丢！');
   };
 
   const handleExecuteReset = () => {

@@ -32,27 +32,19 @@ function openDB(): Promise<IDBDatabase> {
 }
 
 /**
- * Save a value to Supabase (primary), then mirror to IndexedDB + LocalStorage as fallbacks.
+ * 保存数据到本地（IndexedDB 主 + LocalStorage 辅），不依赖 Supabase 云端。
+ * 国内访问场景下，本地存储读写快、可靠、无 payload 大小限制，
+ * 管理员编辑的文字/图片/PDF链接均可稳定保存，刷新不丢。
  */
 export async function setPersistentItem<T>(key: string, value: T): Promise<void> {
-  // 1. Supabase (primary server-side store)
-  try {
-    const { error } = await supabase
-      .from('portfolio_settings')
-      .upsert({ key, value: value as unknown as Record<string, unknown> }, { onConflict: 'key' });
-    if (error) console.warn(`Supabase save failed for key "${key}":`, error.message);
-  } catch (e) {
-    console.warn(`Supabase save error for key "${key}":`, e);
-  }
-
-  // 2. LocalStorage (fast local cache — may fail on large payloads)
+  // 1. LocalStorage (快速小数据缓存 — 大 payload 可能超配额，忽略错误)
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch (e) {
-    console.warn(`LocalStorage quota exceeded for key "${key}":`, e);
+    // 大 payload（如 base64 图片）会超 localStorage 配额，正常降级到 IndexedDB
   }
 
-  // 3. IndexedDB (large-payload local fallback)
+  // 2. IndexedDB (主存储，支持大 payload，无严格大小限制)
   try {
     const db = await openDB();
     await new Promise<void>((resolve, reject) => {
@@ -68,25 +60,11 @@ export async function setPersistentItem<T>(key: string, value: T): Promise<void>
 }
 
 /**
- * Read a value from Supabase (primary), falling back to IndexedDB then LocalStorage.
+ * 从本地读取数据（IndexedDB 主 + LocalStorage 辅），不查 Supabase 云端。
+ * 国内访问场景下，本地读取秒级响应，避免云端大数据（12MB+）拉取超时。
  */
 export async function getPersistentItem<T>(key: string, fallbackKeys: string[] = []): Promise<T | null> {
-  // 1. Supabase (primary)
-  try {
-    const { data, error } = await supabase
-      .from('portfolio_settings')
-      .select('value')
-      .eq('key', key)
-      .maybeSingle();
-
-    if (!error && data && data.value !== null && data.value !== undefined) {
-      return data.value as T;
-    }
-  } catch (e) {
-    console.warn(`Supabase read failed for key "${key}":`, e);
-  }
-
-  // 2. IndexedDB
+  // 1. IndexedDB (主存储)
   try {
     const db = await openDB();
     const result = await new Promise<T | null>((resolve, reject) => {
@@ -103,7 +81,7 @@ export async function getPersistentItem<T>(key: string, fallbackKeys: string[] =
     console.warn(`IndexedDB read failed for key "${key}":`, e);
   }
 
-  // 3. LocalStorage (primary key)
+  // 2. LocalStorage
   try {
     const local = localStorage.getItem(key);
     if (local) {
@@ -113,7 +91,7 @@ export async function getPersistentItem<T>(key: string, fallbackKeys: string[] =
     console.warn(`LocalStorage parse failed for key "${key}":`, e);
   }
 
-  // 4. Fallback legacy keys in LocalStorage
+  // 3. Fallback legacy keys in LocalStorage
   for (const fKey of fallbackKeys) {
     try {
       const fallbackLocal = localStorage.getItem(fKey);

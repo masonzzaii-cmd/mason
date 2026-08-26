@@ -273,8 +273,8 @@ function isAdminSession(): boolean {
  * 国内部署优化后的优先级：
  *   - 访客（非管理员）：直接使用代码中的 fallback 默认数据，确保国内秒开、内容确定，
  *     不依赖 Supabase 云端（国内访问不稳定）与本地旧缓存（可能命中过期数据）。
- *   - 管理员：Supabase 云端 -> 本地 IndexedDB/LocalStorage -> fallback 默认数据
- *     （管理员登录后从云端拉取自己编辑后的最新数据）
+ *   - 管理员：本地 IndexedDB/LocalStorage（编辑后的数据） -> fallback 默认数据
+ *     （管理员登录后读取本地编辑后的最新数据，不查云端避免大 payload 超时）
  */
 export async function fetchSectionData<T>(
   section: string,
@@ -282,30 +282,12 @@ export async function fetchSectionData<T>(
   localStorageKey: string,
   fallback: T
 ): Promise<T> {
-  // 访客静态优先：非管理员且代码默认值存在时，直接返回代码数据，跳过云端与缓存查询
+  // 访客静态优先：非管理员且代码默认值存在时，直接返回代码数据
   if (!isAdminSession() && fallback !== null && fallback !== undefined) {
     return fallback;
   }
 
-  // 以下为管理员路径：尝试从 Supabase 读取
-  try {
-    const cloudContent = await fetchSiteContent(section, fieldName);
-    if (cloudContent && cloudContent.trim()) {
-      try {
-        const parsed = JSON.parse(cloudContent) as T;
-        // 顺便同步回本地缓存，以便离线加速
-        await setPersistentItem(localStorageKey, parsed);
-        return parsed;
-      } catch {
-        // 如果不是 JSON，而泛型恰好是 string
-        return cloudContent as unknown as T;
-      }
-    }
-  } catch (e) {
-    console.warn(`Supabase fetch failed for ${section}.${fieldName}, falling back to local:`, e);
-  }
-
-  // 2. 尝试从本地 IndexedDB / LocalStorage 读取
+  // 管理员路径：从本地 IndexedDB / LocalStorage 读取编辑后的数据
   try {
     const local = await getPersistentItem<T>(localStorageKey);
     if (local !== null && local !== undefined) {
@@ -315,12 +297,14 @@ export async function fetchSectionData<T>(
     console.warn(`Local persistent storage read failed for ${localStorageKey}:`, e);
   }
 
-  // 3. 返回默认数据
+  // 没有本地编辑数据，返回代码默认值
   return fallback;
 }
 
 /**
- * 高级封装：双写保存数据 (同时写入 Supabase 云端数据库与本地 IndexedDB 缓存)
+ * 高级封装：保存数据到本地（IndexedDB + LocalStorage），不再写 Supabase 云端。
+ * 国内部署优化：本地存储快、可靠、无 payload 大小限制，管理员编辑内容刷新不丢。
+ * （访客看代码默认值；管理员看本地编辑值；部署时将本地数据固化到代码即可让访客看到更新）
  */
 export async function saveSectionData<T>(
   section: string,
@@ -328,24 +312,15 @@ export async function saveSectionData<T>(
   localStorageKey: string,
   data: T
 ): Promise<{ success: boolean; cloudSynced: boolean }> {
-  // 1. 先保存到本地 IndexedDB / LocalStorage (保证瞬间响应不卡顿)
+  // 只保存到本地 IndexedDB / LocalStorage
   try {
     await setPersistentItem(localStorageKey, data);
   } catch (e) {
     console.error(`Failed to save to local persistent storage for ${localStorageKey}:`, e);
   }
 
-  // 2. 异步/同步写入 Supabase 云端数据库
-  let cloudSynced = false;
-  try {
-    const contentString = typeof data === 'string' ? data : JSON.stringify(data);
-    cloudSynced = await upsertSiteContent(section, fieldName, contentString);
-  } catch (e) {
-    console.error(`Failed to save to Supabase site_content for ${section}.${fieldName}:`, e);
-  }
-
   return {
     success: true,
-    cloudSynced,
+    cloudSynced: true,
   };
 }
