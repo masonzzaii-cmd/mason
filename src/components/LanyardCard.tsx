@@ -168,7 +168,7 @@ export const LanyardCard: React.FC<LanyardCardProps> = ({
       </div>
 
       <div
-        className="relative w-80 h-[550px] sm:w-[340px] sm:h-[570px] cursor-pointer group"
+        className="relative w-[320px] h-[600px] sm:w-[340px] sm:h-[620px] cursor-pointer group"
         style={{ perspective: '1200px' }}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
@@ -189,7 +189,7 @@ export const LanyardCard: React.FC<LanyardCardProps> = ({
           }}
         >
           <div
-            className={`absolute inset-0 w-full h-full rounded-2xl overflow-hidden bg-gradient-to-b from-[#14161a] via-[#0d0f12] to-[#060709] border text-[#eee7db] p-5 flex flex-col justify-between shadow-[inset_0_0_30px_rgba(180,147,93,0.08)] transition-all duration-300 ${
+            className={`absolute inset-0 w-full h-full rounded-2xl overflow-hidden bg-gradient-to-b from-[#14161a] via-[#0d0f12] to-[#060709] border text-[#eee7db] px-5 py-4 flex flex-col shadow-[inset_0_0_30px_rgba(180,147,93,0.08)] transition-all duration-300 ${
               isDragging
                 ? 'border-emerald-400 border-2 bg-[#0d141d]'
                 : 'border-[#b4935d]/30 hover:border-[#b4935d]/60'
@@ -202,7 +202,7 @@ export const LanyardCard: React.FC<LanyardCardProps> = ({
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
           >
-            <div className="flex justify-between items-center border-b border-[#b4935d]/20 pb-2.5">
+            <div className="flex justify-between items-center border-b border-[#b4935d]/20 pb-2 mb-3">
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-[#b4935d] animate-pulse" />
                 <span className="font-mono text-[10px] tracking-widest text-[#d8be92] uppercase font-semibold">
@@ -214,14 +214,14 @@ export const LanyardCard: React.FC<LanyardCardProps> = ({
               </span>
             </div>
 
-            <div className="flex flex-col items-center my-auto">
-              <div className="relative my-2 w-full flex flex-col items-center">
+            <div className="flex flex-col items-center gap-2.5">
+              <div className="relative w-full flex flex-col items-center">
                 <div
                   onClick={(e) => {
                     e.stopPropagation();
                     fileInputRef.current?.click();
                   }}
-                  className={`relative w-[210px] h-[300px] sm:w-[225px] sm:h-[320px] rounded-xl overflow-hidden border-2 transition-all duration-300 group/photo shadow-2xl bg-[#080808] flex items-center justify-center cursor-pointer ${
+                  className={`relative w-[195px] h-[260px] sm:w-[210px] sm:h-[280px] rounded-xl overflow-hidden border-2 transition-all duration-300 group/photo shadow-2xl bg-[#080808] flex items-center justify-center cursor-pointer ${
                     isDragging
                       ? 'border-emerald-400 ring-4 ring-emerald-500/20 scale-105'
                       : 'border-[#b4935d]/50 hover:border-[#b4935d]'
@@ -280,7 +280,7 @@ export const LanyardCard: React.FC<LanyardCardProps> = ({
                 </div>
               </div>
 
-              <h3 className="font-mono text-xl font-bold text-[#f5ebd9] tracking-wider mt-1">
+              <h3 className="font-mono text-xl font-bold text-[#f5ebd9] tracking-wider">
                 MASON
               </h3>
               <p className="text-xs text-[#b4935d] font-medium tracking-wide">
@@ -288,7 +288,7 @@ export const LanyardCard: React.FC<LanyardCardProps> = ({
               </p>
             </div>
 
-            <div className="space-y-1.5 border-t border-b border-[#b4935d]/15 py-2.5 text-[10px] text-[#a9a093]">
+            <div className="mt-3 space-y-1.5 border-t border-b border-[#b4935d]/15 py-2.5 text-[10px] text-[#a9a093]">
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-1 text-[#7a7267]">
                   <Award className="w-3 h-3 text-[#b4935d]" /> 行业资历
@@ -309,7 +309,7 @@ export const LanyardCard: React.FC<LanyardCardProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-[9px] text-[#7a7267]">
+            <div className="mt-2 flex items-center justify-between text-[9px] text-[#7a7267]">
               <span className="font-mono tracking-widest">VERIFIED CREATIVE</span>
               <span className="px-2.5 py-1 rounded-full bg-[#b4935d]/20 text-[#d8be92] border border-[#b4935d]/40 font-mono flex items-center gap-1">
                 <RotateCw className="w-3 h-3 text-[#b4935d]" /> 点击翻转名片
