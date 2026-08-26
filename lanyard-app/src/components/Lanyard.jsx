@@ -128,38 +128,6 @@ export const LanyardCard = ({
         className="hidden"
       />
 
-      <div className="flex items-center justify-center gap-2 mb-4 bg-[#0d1017]/90 px-4 py-2 rounded-2xl border border-[#b4935d]/40 shadow-2xl z-30">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsFlipped(false);
-          }}
-          className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-mono tracking-wider transition-all cursor-pointer ${
-            !isFlipped
-              ? 'bg-[#b4935d] text-[#050608] font-bold shadow-md'
-              : 'text-[#a09483] hover:text-[#f5ebd9]'
-          }`}
-        >
-          <User className="w-3.5 h-3.5" />
-          <span>正面 (Front)</span>
-        </button>
-
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setIsFlipped(true);
-          }}
-          className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-mono tracking-wider transition-all cursor-pointer ${
-            isFlipped
-              ? 'bg-[#b4935d] text-[#050608] font-bold shadow-md'
-              : 'text-[#a09483] hover:text-[#f5ebd9]'
-          }`}
-        >
-          <QrCode className="w-3.5 h-3.5" />
-          <span>微信名片 (WeChat QR)</span>
-        </button>
-      </div>
-
       {uploadSuccess && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
