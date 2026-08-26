@@ -94,16 +94,24 @@ export const ProjectEditModal: React.FC<ProjectEditModalProps> = ({
     }
     setIsProcessing(true);
     try {
+      // 优先尝试上传到 Supabase Storage（云端 CDN）
+      // 失败时优雅降级到压缩 base64（存到 portfolio_settings 表），保证上传一定成功
       if (isSupabaseConfigured()) {
-        const publicUrl = await uploadAssetToStorage(file, `proj_cover_${form.id || Date.now()}`);
-        if (publicUrl) {
-          setForm((prev) => ({ ...prev, imageUrl: publicUrl }));
-          return;
+        try {
+          const publicUrl = await uploadAssetToStorage(file, `proj_cover_${form.id || Date.now()}`);
+          if (publicUrl) {
+            setForm((prev) => ({ ...prev, imageUrl: publicUrl }));
+            return;
+          }
+        } catch (storageErr) {
+          console.warn('Storage 上传失败，降级到 base64 压缩存储:', storageErr);
         }
       }
-      const dataUrl = await compressImage(file, 1400, 0.9);
+      // Fallback：压缩为 base64 DataURI（不依赖网络，上传必定成功）
+      const dataUrl = await compressImage(file, 1400, 0.85);
       setForm((prev) => ({ ...prev, imageUrl: dataUrl }));
     } catch (e) {
+      console.error('Cover upload error:', e);
       alert('处理图片失败，请重试');
     } finally {
       setIsProcessing(false);
@@ -118,6 +126,7 @@ export const ProjectEditModal: React.FC<ProjectEditModalProps> = ({
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         if (file.type.startsWith('image/')) {
+          // 优先上传到 Supabase Storage，失败时降级到压缩 base64，保证一定成功
           if (isSupabaseConfigured()) {
             try {
               const publicUrl = await uploadAssetToStorage(file, `proj_gallery_${form.id || Date.now()}_${i}`);
@@ -125,9 +134,12 @@ export const ProjectEditModal: React.FC<ProjectEditModalProps> = ({
                 newImages.push(publicUrl);
                 continue;
               }
-            } catch (err) {}
+            } catch (storageErr) {
+              console.warn(`Gallery[${i}] Storage 上传失败，降级 base64:`, storageErr);
+            }
           }
-          const dataUrl = await compressImage(file, 1400, 0.88);
+          // Fallback：压缩 base64
+          const dataUrl = await compressImage(file, 1400, 0.82);
           newImages.push(dataUrl);
         }
       }
@@ -136,6 +148,7 @@ export const ProjectEditModal: React.FC<ProjectEditModalProps> = ({
         galleryImages: [...(prev.galleryImages || []), ...newImages],
       }));
     } catch (e) {
+      console.error('Gallery upload error:', e);
       alert('上传落地实景图片失败');
     } finally {
       setIsProcessing(false);
@@ -166,19 +179,30 @@ export const ProjectEditModal: React.FC<ProjectEditModalProps> = ({
       alert('请上传 PDF 格式文件');
       return;
     }
+    // PDF 转 base64 通常会让数据膨胀数倍，大文件可能超出存储限制
+    // 提示用户优先使用网络链接方式
+    if (file.size > 5 * 1024 * 1024) {
+      alert('PDF 文件较大（超过 5MB），建议改用「网络 PDF 浏览链接」方式（如 maipdf.cn），上传更稳定快速。');
+    }
     setIsProcessing(true);
     try {
+      // 优先上传到 Supabase Storage
       if (isSupabaseConfigured()) {
-        const publicUrl = await uploadAssetToStorage(file, `proj_pdf_${form.id || Date.now()}`);
-        if (publicUrl) {
-          setForm((prev) => ({
-            ...prev,
-            pdfUrl: publicUrl,
-            pdfFileName: file.name,
-          }));
-          return;
+        try {
+          const publicUrl = await uploadAssetToStorage(file, `proj_pdf_${form.id || Date.now()}`);
+          if (publicUrl) {
+            setForm((prev) => ({
+              ...prev,
+              pdfUrl: publicUrl,
+              pdfFileName: file.name,
+            }));
+            return;
+          }
+        } catch (storageErr) {
+          console.warn('PDF Storage 上传失败，降级到 base64:', storageErr);
         }
       }
+      // Fallback：读取为 base64 DataURI
       const reader = new FileReader();
       reader.onload = (e) => {
         setForm((prev) => ({
@@ -192,7 +216,8 @@ export const ProjectEditModal: React.FC<ProjectEditModalProps> = ({
       };
       reader.readAsDataURL(file);
     } catch (err) {
-      alert('上传 PDF 文件失败，请重试');
+      console.error('PDF upload error:', err);
+      alert('上传 PDF 文件失败，请重试或改用网络链接方式');
     } finally {
       setIsProcessing(false);
     }
