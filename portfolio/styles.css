@@ -28,7 +28,7 @@ html {
 }
 
 body {
-    font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family: 'Raleway', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
     background: var(--bg-primary);
     color: var(--text-primary);
     line-height: 1.7;
@@ -82,7 +82,7 @@ body {
 }
 
 .logo-title {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Playfair Display', serif;
     font-size: 16px;
     font-weight: 600;
     letter-spacing: 2px;
@@ -222,7 +222,7 @@ body {
 }
 
 .section-label {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Playfair Display', serif;
     font-size: 14px;
     letter-spacing: 4px;
     color: var(--gold);
@@ -231,7 +231,7 @@ body {
 }
 
 .section-title {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Playfair Display', serif;
     font-size: 56px;
     font-weight: 300;
     color: var(--text-primary);
@@ -332,7 +332,7 @@ body {
 }
 
 .hero-subtitle {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Playfair Display', serif;
     font-size: 24px;
     font-weight: 300;
     letter-spacing: 12px;
@@ -341,7 +341,7 @@ body {
 }
 
 .hero-title {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Playfair Display', serif;
     font-size: clamp(60px, 12vw, 160px);
     font-weight: 300;
     line-height: 1;
@@ -354,7 +354,7 @@ body {
 }
 
 .hero-slogan {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Playfair Display', serif;
     font-size: clamp(20px, 3vw, 36px);
     font-weight: 300;
     letter-spacing: 8px;
@@ -426,7 +426,7 @@ body {
 }
 
 .scroll-text {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Playfair Display', serif;
     font-size: 12px;
     letter-spacing: 4px;
     color: var(--gold);
@@ -557,7 +557,7 @@ body {
 }
 
 .card-brand {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Playfair Display', serif;
     font-size: 16px;
     letter-spacing: 2px;
     color: var(--gold);
@@ -608,7 +608,7 @@ body {
 }
 
 .card-info h3 {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Playfair Display', serif;
     font-size: 28px;
     font-weight: 500;
     color: var(--text-primary);
@@ -656,7 +656,7 @@ body {
 }
 
 .verified {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Playfair Display', serif;
     font-size: 11px;
     letter-spacing: 2px;
     color: var(--text-muted);
@@ -687,7 +687,7 @@ body {
     padding-bottom: 16px;
     border-bottom: 1px solid var(--border-light);
     margin-bottom: 20px;
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Playfair Display', serif;
     font-size: 16px;
     letter-spacing: 2px;
     color: var(--gold);
@@ -916,7 +916,7 @@ body {
     align-items: center;
     gap: 8px;
     color: var(--gold);
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Playfair Display', serif;
     font-size: 16px;
     letter-spacing: 1px;
 }
@@ -1199,7 +1199,7 @@ body {
 }
 
 .skill-bar-value {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Playfair Display', serif;
     font-size: 20px;
     color: var(--gold);
 }
@@ -1278,7 +1278,7 @@ body {
 }
 
 .circle-value {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Playfair Display', serif;
     font-size: 36px;
     color: var(--gold);
     font-weight: 300;
