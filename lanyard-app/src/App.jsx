@@ -36,26 +36,28 @@ export default function App({ frontImage, backImage, lanyardImage }) {
   }, [])
 
   return (
-    <div style={{ width: '100%', height: '100vh', background: 'transparent' }}>
+    <div style={{ width: '100%', height: '100vh', background: '#1a1612' }}>
       <Canvas
-        camera={{ position: [0, 0, 8], fov: 35 }}
+        camera={{ position: [0, 0, 9], fov: 45 }}
         dpr={[1, 2]}
-        gl={{ antialias: true, alpha: true, preserveDrawingBuffer: true }}
-        style={{ background: 'transparent' }}
+        gl={{ antialias: true, alpha: false, preserveDrawingBuffer: true }}
+        style={{ background: '#1a1612' }}
       >
-        <ambientLight intensity={0.8} />
-        <directionalLight position={[5, 8, 5]} intensity={1.5} />
-        <directionalLight position={[-5, 3, -5]} intensity={0.8} color="#c9a962" />
-        <pointLight position={[0, -1, 3]} intensity={1.2} color="#e5c884" />
-        <pointLight position={[0, 2, 3]} intensity={0.6} color="#ffffff" />
+        <ambientLight intensity={1.2} />
+        <directionalLight position={[5, 10, 5]} intensity={2.0} />
+        <directionalLight position={[-5, 5, -5]} intensity={1.0} color="#c9a962" />
+        <pointLight position={[0, -2, 4]} intensity={1.5} color="#ffe4a0" />
+        <pointLight position={[0, 3, 4]} intensity={1.0} color="#ffffff" />
+        <pointLight position={[3, -1, 2]} intensity={0.8} color="#c9a962" />
+        <pointLight position={[-3, 1, 2]} intensity={0.8} color="#c9a962" />
 
         <Suspense fallback={null}>
           <Lanyard
-            position={[0, 0, 0]}
+            position={[0, 2, 0]}
             frontImage={front}
             backImage={back}
             lanyardImage={band}
-            lanyardWidth={1}
+            lanyardWidth={1.2}
           />
         </Suspense>
       </Canvas>

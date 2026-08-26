@@ -6,11 +6,11 @@ import * as THREE from 'three'
 
 extend({ MeshLineGeometry, MeshLineMaterial })
 
-const CARD_W = 2.1
-const CARD_H = 3.3
-const CARD_D = 0.04
-const SEG_COUNT = 30
-const BAND_POINTS = 150
+const CARD_W = 3.2
+const CARD_H = 4.8
+const CARD_D = 0.06
+const SEG_COUNT = 40
+const BAND_POINTS = 200
 
 export default function Lanyard({
   position = [0, 0, 0],
@@ -24,8 +24,8 @@ export default function Lanyard({
   const bandRef = useRef()
   const groupRef = useRef()
 
-  const angleXRef = useRef(0.15)
-  const angleZRef = useRef(0.1)
+  const angleXRef = useRef(0.12)
+  const angleZRef = useRef(0.15)
   const angVelXRef = useRef(0)
   const angVelZRef = useRef(0)
   const bobRef = useRef(0)
@@ -67,11 +67,13 @@ export default function Lanyard({
   }, [lanyardImage])
 
   const cardMat = useMemo(() => new THREE.MeshPhysicalMaterial({
-    color: '#4a3f35',
-    metalness: 0.2,
+    color: '#f5e6c8',
+    metalness: 0.05,
     roughness: 0.35,
-    clearcoat: 0.5,
-    clearcoatRoughness: 0.15,
+    clearcoat: 0.8,
+    clearcoatRoughness: 0.1,
+    sheen: 0.3,
+    sheenColor: new THREE.Color('#c9a962'),
   }), [])
 
   const bandMatProps = useMemo(() => {
@@ -80,8 +82,8 @@ export default function Lanyard({
     }
     return {
       color: '#c9a962',
-      metalness: 0.5,
-      roughness: 0.4,
+      metalness: 0.6,
+      roughness: 0.3,
       side: THREE.DoubleSide,
       transparent: true,
     }
@@ -91,9 +93,9 @@ export default function Lanyard({
     const pts = []
     for (let i = 0; i <= SEG_COUNT; i++) {
       const t = i / SEG_COUNT
-      pts.push(new THREE.Vector3(0, 1.3 - t * 2.6, 0))
+      pts.push(new THREE.Vector3(0, 2.0 - t * 4.0, 0))
     }
-    pts.push(new THREE.Vector3(0, -1.3, 0))
+    pts.push(new THREE.Vector3(0, -2.0, 0))
     const curve = new THREE.CatmullRomCurve3(pts)
     const curvePts = curve.getPoints(BAND_POINTS)
     const data = curveDataRef.current
@@ -119,8 +121,8 @@ export default function Lanyard({
     if (!draggingRef.current) return
     const dx = e.point.x - lastPointerRef.current.x
     const dy = e.point.y - lastPointerRef.current.y
-    angVelZRef.current += dx * 0.5
-    angVelXRef.current -= dy * 0.5
+    angVelZRef.current += dx * 0.8
+    angVelXRef.current -= dy * 0.8
     lastPointerRef.current = { x: e.point.x, y: e.point.y }
   }
 
@@ -131,38 +133,38 @@ export default function Lanyard({
     const time = state.clock.elapsedTime
 
     if (!draggingRef.current) {
-      const gravityAccel = -9.81 * 0.5
-      const len = 2.5
+      const gravityAccel = -9.81 * 0.4
+      const len = 3.8
 
       angVelZRef.current += -gravityAccel / len * Math.sin(angleZRef.current) * dt
       angVelXRef.current += -gravityAccel / len * Math.sin(angleXRef.current) * dt
 
-      angVelZRef.current *= 0.995
-      angVelXRef.current *= 0.995
+      angVelZRef.current *= 0.992
+      angVelXRef.current *= 0.992
 
       angleZRef.current += angVelZRef.current * dt
       angleXRef.current += angVelXRef.current * dt
 
-      angVelZRef.current += Math.sin(time * 0.6) * 0.003
-      angVelXRef.current += Math.cos(time * 0.4) * 0.002
+      angVelZRef.current += Math.sin(time * 0.5) * 0.004
+      angVelXRef.current += Math.cos(time * 0.35) * 0.003
     }
 
-    bobVelRef.current += (Math.sin(time * 1.0) * 0.2 - bobRef.current * 2) * dt
+    bobVelRef.current += (Math.sin(time * 0.8) * 0.15 - bobRef.current * 2.5) * dt
     bobRef.current += bobVelRef.current * dt
-    bobRef.current = Math.max(-0.15, Math.min(0.15, bobRef.current))
+    bobRef.current = Math.max(-0.1, Math.min(0.1, bobRef.current))
 
-    const pivotPos = pivotRef.current ? pivotRef.current.position : tempVec1.set(0, 1.3, 0)
+    const pivotPos = pivotRef.current ? pivotRef.current.position : tempVec1.set(0, 2.0, 0)
 
     tempVec2.set(
-      Math.sin(angleZRef.current) * 2.5,
-      bobRef.current - 2.5,
-      Math.sin(angleXRef.current) * 2.5
+      Math.sin(angleZRef.current) * 3.8,
+      bobRef.current - 3.8,
+      Math.sin(angleXRef.current) * 3.8
     )
     const cardCenter = tempVec3.copy(pivotPos).add(tempVec2)
 
     if (cardRef.current) {
       cardRef.current.position.copy(cardCenter)
-      cardRef.current.rotation.set(angleXRef.current, angleZRef.current * 0.3, 0)
+      cardRef.current.rotation.set(angleXRef.current * 0.5, angleZRef.current * 0.4, 0)
     }
 
     if (bandRef.current) {
@@ -174,9 +176,9 @@ export default function Lanyard({
       for (let i = 1; i < numSeg; i++) {
         const t = i / numSeg
         const dampFactor = t
-        const swayX = Math.sin(angleZRef.current * (1 - dampFactor)) * 2.5 * dampFactor
-        const swayZ = Math.sin(angleXRef.current * (1 - dampFactor)) * 2.5 * dampFactor
-        const swayY = -2.5 * dampFactor + bobRef.current * (1 - dampFactor) * 0.5
+        const swayX = Math.sin(angleZRef.current * (1 - dampFactor)) * 3.8 * dampFactor
+        const swayZ = Math.sin(angleXRef.current * (1 - dampFactor)) * 3.8 * dampFactor
+        const swayY = -3.8 * dampFactor + bobRef.current * (1 - dampFactor) * 0.5
 
         pts[i].set(
           pivotPos.x + swayX,
@@ -201,21 +203,21 @@ export default function Lanyard({
 
   return (
     <group ref={groupRef} position={position}>
-      <group ref={pivotRef} position={[0, 1.3, 0]}>
+      <group ref={pivotRef} position={[0, 2.0, 0]}>
         <mesh>
-          <cylinderGeometry args={[0.08, 0.08, 0.15, 16]} />
-          <meshStandardMaterial color="#c9a962" metalness={0.8} roughness={0.2} />
-        </mesh>
-        <mesh position={[0, 0, 0.3]}>
-          <boxGeometry args={[0.12, 0.2, 0.06]} />
+          <cylinderGeometry args={[0.1, 0.1, 0.2, 20]} />
           <meshStandardMaterial color="#c9a962" metalness={0.9} roughness={0.1} />
+        </mesh>
+        <mesh position={[0, 0.05, 0.4]}>
+          <boxGeometry args={[0.15, 0.25, 0.08]} />
+          <meshStandardMaterial color="#c9a962" metalness={0.95} roughness={0.05} />
         </mesh>
       </group>
 
       <mesh ref={bandRef} geometry={initialBandGeo}>
         <meshLineMaterial
           {...bandMatProps}
-          lineWidth={lanyardWidth * 0.12}
+          lineWidth={lanyardWidth * 0.15}
           sizeAttenuation={false}
           depthWrite={false}
         />
@@ -223,7 +225,7 @@ export default function Lanyard({
 
       <group
         ref={cardRef}
-        position={[0, -2.5, 0]}
+        position={[0, -3.8, 0]}
         onPointerDown={onPointerDown}
         onPointerUp={onPointerUp}
         onPointerOut={onPointerUp}
@@ -231,40 +233,40 @@ export default function Lanyard({
       >
         <RoundedBox
           args={[CARD_W, CARD_H, CARD_D]}
-          radius={0.12}
+          radius={0.18}
           smoothness={4}
           material={cardMat}
         />
 
-        <mesh position={[0, 0, CARD_D / 2 + 0.0003]}>
-          <planeGeometry args={[CARD_W - 0.02, CARD_H - 0.02]} />
+        <mesh position={[0, 0, CARD_D / 2 + 0.0005]}>
+          <planeGeometry args={[CARD_W - 0.04, CARD_H - 0.04]} />
           <meshBasicMaterial
             map={frontTex}
-            color={frontTex ? '#ffffff' : '#8a7a6a'}
+            color={frontTex ? '#ffffff' : '#f5e6c8'}
           />
         </mesh>
 
         <mesh
-          position={[0, 0, -(CARD_D / 2 + 0.0003)]}
+          position={[0, 0, -(CARD_D / 2 + 0.0005)]}
           rotation={[0, Math.PI, 0]}
         >
-          <planeGeometry args={[CARD_W - 0.02, CARD_H - 0.02]} />
+          <planeGeometry args={[CARD_W - 0.04, CARD_H - 0.04]} />
           <meshBasicMaterial
             map={backTex}
-            color={backTex ? '#ffffff' : '#6a5a4a'}
+            color={backTex ? '#ffffff' : '#e8d5b0'}
           />
         </mesh>
 
         {[
-          [CARD_W / 2 - 0.01, 0, 0],
-          [-CARD_W / 2 + 0.01, 0, 0],
+          [CARD_W / 2 - 0.015, 0, 0],
+          [-CARD_W / 2 + 0.015, 0, 0],
         ].map((pos, i) => (
           <mesh
             key={`edge-${i}`}
             position={pos}
             rotation={[0, i === 0 ? Math.PI / 2 : -Math.PI / 2, 0]}
           >
-            <planeGeometry args={[CARD_H, CARD_D + 0.008]} />
+            <planeGeometry args={[CARD_H, CARD_D + 0.01]} />
             <meshStandardMaterial
               color="#c9a962"
               metalness={0.9}
@@ -274,19 +276,19 @@ export default function Lanyard({
         ))}
 
         {[
-          [CARD_W / 2 - 0.15, CARD_H / 2 - 0.15],
-          [-CARD_W / 2 + 0.15, CARD_H / 2 - 0.15],
-          [CARD_W / 2 - 0.15, -CARD_H / 2 + 0.15],
-          [-CARD_W / 2 + 0.15, -CARD_H / 2 + 0.15],
+          [CARD_W / 2 - 0.2, CARD_H / 2 - 0.2],
+          [-CARD_W / 2 + 0.2, CARD_H / 2 - 0.2],
+          [CARD_W / 2 - 0.2, -CARD_H / 2 + 0.2],
+          [-CARD_W / 2 + 0.2, -CARD_H / 2 + 0.2],
         ].map(([x, y], i) => (
           <mesh
             key={`rivet-${i}`}
-            position={[x, y, CARD_D / 2 + 0.006]}
+            position={[x, y, CARD_D / 2 + 0.008]}
             rotation={[Math.PI / 2, 0, 0]}
           >
-            <cylinderGeometry args={[0.035, 0.035, 0.015, 12]} />
+            <cylinderGeometry args={[0.05, 0.05, 0.02, 14]} />
             <meshStandardMaterial
-              color="#a88840"
+              color="#b8953d"
               metalness={0.9}
               roughness={0.1}
             />

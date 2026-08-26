@@ -502,13 +502,14 @@ body {
 .lanyard-container {
     position: relative;
     width: 100%;
-    max-width: 400px;
-    height: 500px;
-    background: linear-gradient(180deg, rgba(20,20,20,0.4) 0%, rgba(10,10,10,0.6) 100%);
-    border: 1px solid var(--border);
+    max-width: 420px;
+    height: 600px;
+    background: #1a1612;
+    border: 1px solid rgba(201, 169, 98, 0.3);
     border-radius: 20px;
     overflow: hidden;
     margin-bottom: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 0 80px rgba(201, 169, 98, 0.05);
 }
 
 .lanyard-container iframe {
@@ -516,6 +517,7 @@ body {
     height: 100%;
     border: none;
     display: block;
+    background: #1a1612;
 }
 
 .lanyard-controls {
