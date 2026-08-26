@@ -270,25 +270,49 @@
 
     // ===== 首页视频 =====
     function initHeroVideo() {
-        const video = $('heroVideo');
-        const placeholder = $('videoPlaceholder');
         const upload = $('videoUpload');
+        const replaceBtn = $('replaceVideoBtn');
+        const iframe = $('heroIframe');
+        const videoBg = $('heroVideoBg');
 
-        if (state.hero.videoBg) {
-            video.src = state.hero.videoBg;
-            placeholder.style.display = 'none';
+        // 如果用户之前上传了本地视频，替换iframe为video
+        if (state.hero.videoBg && state.hero.videoBg.startsWith('data:')) {
+            videoBg.innerHTML = `
+                <video autoplay muted loop playsinline id="heroVideo" style="width:100%;height:100%;object-fit:cover;">
+                    <source src="${state.hero.videoBg}" type="video/mp4">
+                </video>
+                <div class="hero-video-controls">
+                    <button id="replaceVideoBtn" title="替换背景视频">
+                        <i class="fas fa-video"></i> 替换背景
+                    </button>
+                </div>
+                <input type="file" id="videoUpload" accept="video/*" hidden>
+            `;
+            setupUpload();
         }
 
-        placeholder.addEventListener('click', () => upload.click());
-        upload.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            state.hero.videoBg = await fileToBase64(file);
-            video.src = state.hero.videoBg;
-            placeholder.style.display = 'none';
-            Storage.save(state);
-            showToast('背景视频已更新');
-        });
+        if (replaceBtn) {
+            replaceBtn.addEventListener('click', () => {
+                $('videoUpload').click();
+            });
+        }
+
+        setupUpload();
+
+        function setupUpload() {
+            const up = $('videoUpload');
+            if (up) {
+                up.addEventListener('change', async (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    state.hero.videoBg = await fileToBase64(file);
+                    Storage.save(state);
+                    showToast('背景视频已更新');
+                    // 替换iframe为video
+                    location.reload();
+                });
+            }
+        }
     }
 
     // ===== 关于我 =====
