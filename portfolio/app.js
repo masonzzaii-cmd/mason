@@ -677,6 +677,16 @@
         });
     }
 
+    function addSoftware() {
+        const name = prompt('软件名称:'); if (!name) return;
+        const desc = prompt('软件说明:') || '';
+        const level = prompt('熟练度 (如: 精通/熟练/掌握):') || '掌握';
+        state.skills.software.push({ id: generateId('sw'), name, desc, level, icon: '' });
+        Storage.save(state);
+        renderSkills();
+        showToast('已添加新软件');
+    }
+
     // ===== 合作项目 =====
     function renderProjects() {
         const grid = $('projectsGrid');
