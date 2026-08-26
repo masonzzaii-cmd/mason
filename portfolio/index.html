@@ -118,30 +118,46 @@
                         <i class="fas fa-qrcode"></i> WeChat QR Code
                     </button>
                 </div>
+                <div class="card-decor">
+                    <span class="decor-line"></span>
+                    <span class="decor-dot"></span>
+                </div>
                 
                 <div class="card-3d-container" id="card3d">
                     <div class="card-3d">
                         <!-- 正面 -->
                         <div class="card-face card-front">
                             <div class="card-header">
-                                <span class="card-brand">MASON DESIGN</span>
+                                <div class="card-brand-row">
+                                    <span class="brand-dot"></span>
+                                    <span class="card-brand">MASON DESIGN</span>
+                                </div>
                                 <span class="card-type">VIP PASS</span>
                             </div>
                             <div class="card-photo" id="cardPhoto">
                                 <img src="" alt="Profile" id="profileImg" style="display:none">
-                                <div class="photo-placeholder">
-                                    <i class="fas fa-user"></i>
-                                    <span>上传照片</span>
+                                <div class="photo-placeholder" id="photoPlaceholder">
+                                    <i class="fas fa-camera"></i>
+                                    <span class="placeholder-text">点击上传照片</span>
+                                </div>
+                                <div class="photo-replace" id="photoReplace" style="display:none;">
+                                    <i class="fas fa-camera"></i>
+                                    <span>更换照片</span>
                                 </div>
                                 <input type="file" id="profileUpload" accept="image/*" hidden>
+                            </div>
+                            <div class="card-photo-meta">
+                                <span class="meta-edit" id="metaEdit"><i class="fas fa-camera"></i> 更换照片</span>
+                                <span class="meta-sep">|</span>
+                                <span class="meta-crop">裁切：半身(填充)</span>
                             </div>
                             <div class="card-info">
                                 <h3 data-editable="text" data-key="about_name">MASON</h3>
                                 <p data-editable="text" data-key="about_title">资深软装设计师</p>
                                 <div class="card-details">
-                                    <span><i class="fas fa-briefcase"></i> 行业资历: <strong>7年室内软装设计</strong></span>
-                                    <span><i class="fas fa-map-marker"></i> 常驻工作地: <strong>中国 · 广东佛山</strong></span>
-                                    <span><i class="fas fa-star"></i> 专长领域: <strong>样板间 / 别墅私宅 / 商业展厅</strong></span>
+                                    <span><i class="fas fa-briefcase"></i><span class="detail-label">行业资历</span><span class="detail-value" data-editable="text" data-key="about_exp1">7年室内软装设计</span></span>
+                                    <span><i class="fas fa-map-marker"></i><span class="detail-label">常驻工作地</span><span class="detail-value" data-editable="text" data-key="about_exp2">中国 · 广东佛山</span></span>
+                                    <span><i class="fas fa-star"></i><span class="detail-label">专长领域</span><span class="detail-value" data-editable="text" data-key="about_exp3">样板间 / 别墅私宅 / 商业展厅</span></span>
                                 </div>
                                 <div class="card-footer">
                                     <span class="verified">VERIFIED CREATIVE</span>
@@ -158,9 +174,13 @@
                             </div>
                             <div class="qr-code" id="qrCode">
                                 <img src="" alt="WeChat QR" id="qrImg" style="display:none">
-                                <div class="qr-placeholder">
+                                <div class="qr-placeholder" id="qrPlaceholder">
                                     <i class="fab fa-weixin"></i>
-                                    <span>上传微信二维码</span>
+                                    <span class="placeholder-text">点击上传微信二维码</span>
+                                </div>
+                                <div class="qr-replace" id="qrReplace" style="display:none;">
+                                    <i class="fas fa-camera"></i>
+                                    <span>更换二维码</span>
                                 </div>
                                 <input type="file" id="qrUpload" accept="image/*" hidden>
                             </div>

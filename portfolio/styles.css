@@ -480,12 +480,12 @@ body {
 .card-tabs {
     display: flex;
     gap: 8px;
-    margin-bottom: 20px;
+    margin-bottom: 8px;
 }
 
 .tab-btn {
     flex: 1;
-    padding: 10px 16px;
+    padding: 12px 16px;
     background: transparent;
     border: 1px solid var(--border);
     border-radius: 50px;
@@ -495,7 +495,9 @@ body {
     align-items: center;
     justify-content: center;
     gap: 8px;
-    font-size: 13px;
+    font-size: 14px;
+    font-family: 'Playfair Display', serif;
+    letter-spacing: 1px;
     transition: var(--transition);
 }
 
@@ -503,6 +505,32 @@ body {
     background: var(--gold);
     color: var(--bg-primary);
     border-color: var(--gold);
+}
+
+.card-decor {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 16px;
+    height: 24px;
+    position: relative;
+}
+
+.card-decor .decor-line {
+    width: 1px;
+    height: 20px;
+    background: linear-gradient(to bottom, var(--gold), transparent);
+}
+
+.card-decor .decor-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 2px solid var(--gold);
+    margin-top: -6px;
+    position: relative;
+    z-index: 1;
 }
 
 .card-3d-container {
@@ -529,11 +557,11 @@ body {
     backface-visibility: hidden;
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 24px;
+    border-radius: 20px;
+    padding: 28px 24px;
     display: flex;
     flex-direction: column;
-    box-shadow: var(--shadow);
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
 }
 
 .card-front {
@@ -551,33 +579,49 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
+    margin-bottom: 12px;
     padding-bottom: 12px;
     border-bottom: 1px solid var(--border-light);
 }
 
+.card-brand-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.brand-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--gold);
+}
+
 .card-brand {
     font-family: 'Playfair Display', serif;
-    font-size: 16px;
-    letter-spacing: 2px;
+    font-size: 14px;
+    letter-spacing: 3px;
     color: var(--gold);
+    font-weight: 500;
 }
 
 .card-type {
+    font-family: 'Playfair Display', serif;
     font-size: 11px;
-    letter-spacing: 2px;
+    letter-spacing: 3px;
     color: var(--text-muted);
 }
 
 .card-photo {
     width: 100%;
     aspect-ratio: 4/3;
-    background: var(--bg-secondary);
-    border-radius: 12px;
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, #1a1a1a 100%);
+    border-radius: 14px;
     overflow: hidden;
     position: relative;
     cursor: pointer;
-    margin-bottom: 16px;
+    margin-bottom: 10px;
+    border: 1px solid var(--border-light);
 }
 
 .card-photo img {
@@ -594,56 +638,131 @@ body {
     align-items: center;
     justify-content: center;
     color: var(--text-muted);
-    gap: 8px;
+    gap: 10px;
+    background: linear-gradient(135deg, rgba(20,20,20,0.8) 0%, rgba(10,10,10,0.9) 100%);
+    transition: var(--transition);
+}
+
+.photo-placeholder:hover {
+    background: linear-gradient(135deg, rgba(30,30,30,0.9) 0%, rgba(20,20,20,0.95) 100%);
 }
 
 .photo-placeholder i {
-    font-size: 48px;
+    font-size: 40px;
     color: var(--gold);
-    opacity: 0.5;
+    opacity: 0.7;
 }
 
-.photo-placeholder span {
+.photo-placeholder .placeholder-text {
+    font-size: 14px;
+    color: var(--gold);
+    font-family: 'Playfair Display', serif;
+    letter-spacing: 2px;
+}
+
+.photo-replace {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--gold);
+    gap: 10px;
+    background: rgba(0,0,0,0.5);
+    opacity: 0;
+    transition: var(--transition);
+}
+
+.card-photo:hover .photo-replace {
+    opacity: 1;
+}
+
+.photo-replace i {
+    font-size: 32px;
+}
+
+.photo-replace span {
+    font-size: 13px;
+    font-family: 'Playfair Display', serif;
+    letter-spacing: 2px;
+}
+
+.card-photo-meta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 12px;
     font-size: 12px;
+    color: var(--text-muted);
+}
+
+.card-photo-meta .meta-edit {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    color: var(--gold);
+    transition: var(--transition);
+}
+
+.card-photo-meta .meta-edit:hover {
+    opacity: 0.8;
+}
+
+.card-photo-meta .meta-sep {
+    color: var(--border);
 }
 
 .card-info h3 {
     font-family: 'Playfair Display', serif;
-    font-size: 28px;
+    font-size: 32px;
     font-weight: 500;
     color: var(--text-primary);
     text-align: center;
+    letter-spacing: 4px;
 }
 
 .card-info p {
     color: var(--gold);
     text-align: center;
     font-size: 14px;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
+    letter-spacing: 2px;
 }
 
 .card-details {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    font-size: 12px;
+    gap: 8px;
+    font-size: 13px;
     color: var(--text-secondary);
-    margin-bottom: 16px;
+    margin-bottom: 14px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-light);
 }
 
-.card-details span {
+.card-details > span {
     display: flex;
-    gap: 6px;
+    align-items: center;
+    gap: 8px;
 }
 
 .card-details i {
     color: var(--gold);
-    width: 14px;
+    width: 16px;
+    text-align: center;
 }
 
-.card-details strong {
+.card-details .detail-label {
+    color: var(--text-muted);
+    min-width: 72px;
+}
+
+.card-details .detail-value {
     color: var(--text-primary);
-    font-weight: 500;
+    flex: 1;
 }
 
 .card-footer {
@@ -658,7 +777,7 @@ body {
 .verified {
     font-family: 'Playfair Display', serif;
     font-size: 11px;
-    letter-spacing: 2px;
+    letter-spacing: 3px;
     color: var(--text-muted);
 }
 
@@ -666,13 +785,15 @@ body {
     background: transparent;
     border: 1px solid var(--border);
     color: var(--gold);
-    padding: 6px 12px;
-    border-radius: 20px;
+    padding: 8px 14px;
+    border-radius: 50px;
     cursor: pointer;
     font-size: 12px;
     display: flex;
     align-items: center;
     gap: 6px;
+    font-family: 'Playfair Display', serif;
+    letter-spacing: 1px;
     transition: var(--transition);
 }
 
@@ -696,8 +817,8 @@ body {
 .qr-code {
     width: 200px;
     height: 200px;
-    background: var(--bg-secondary);
-    border-radius: 12px;
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, #1a1a1a 100%);
+    border-radius: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -705,6 +826,7 @@ body {
     position: relative;
     cursor: pointer;
     margin-bottom: 20px;
+    border: 1px solid var(--border-light);
 }
 
 .qr-code img {
@@ -714,21 +836,61 @@ body {
 }
 
 .qr-placeholder {
+    position: absolute;
+    inset: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    justify-content: center;
+    gap: 10px;
     color: var(--text-muted);
+    background: linear-gradient(135deg, rgba(20,20,20,0.8) 0%, rgba(10,10,10,0.9) 100%);
+    transition: var(--transition);
+}
+
+.qr-placeholder:hover {
+    background: linear-gradient(135deg, rgba(30,30,30,0.9) 0%, rgba(20,20,20,0.95) 100%);
 }
 
 .qr-placeholder i {
-    font-size: 64px;
+    font-size: 56px;
     color: #07c160;
-    opacity: 0.5;
+    opacity: 0.7;
 }
 
-.qr-placeholder span {
-    font-size: 12px;
+.qr-placeholder .placeholder-text {
+    font-size: 14px;
+    color: var(--gold);
+    font-family: 'Playfair Display', serif;
+    letter-spacing: 2px;
+}
+
+.qr-replace {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--gold);
+    gap: 10px;
+    background: rgba(0,0,0,0.5);
+    opacity: 0;
+    transition: var(--transition);
+}
+
+.qr-code:hover .qr-replace {
+    opacity: 1;
+}
+
+.qr-replace i {
+    font-size: 32px;
+}
+
+.qr-replace span {
+    font-size: 13px;
+    font-family: 'Playfair Display', serif;
+    letter-spacing: 2px;
 }
 
 .qr-info p {

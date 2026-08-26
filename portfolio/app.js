@@ -322,22 +322,54 @@
         if (state.about.profileImg) {
             $('profileImg').src = state.about.profileImg;
             $('profileImg').style.display = 'block';
+            $('photoPlaceholder').style.display = 'none';
+            $('photoReplace').style.display = 'flex';
         }
         if (state.about.qrImg) {
             $('qrImg').src = state.about.qrImg;
             $('qrImg').style.display = 'block';
+            $('qrPlaceholder').style.display = 'none';
+            $('qrReplace').style.display = 'flex';
         }
 
+        const updatePhotoUI = () => {
+            if (state.about.profileImg) {
+                $('profileImg').style.display = 'block';
+                $('photoPlaceholder').style.display = 'none';
+                $('photoReplace').style.display = 'flex';
+            } else {
+                $('profileImg').style.display = 'none';
+                $('photoPlaceholder').style.display = 'flex';
+                $('photoReplace').style.display = 'none';
+            }
+        };
+
         $('cardPhoto').addEventListener('click', () => $('profileUpload').click());
+        $('metaEdit').addEventListener('click', (e) => {
+            e.stopPropagation();
+            $('profileUpload').click();
+        });
         $('profileUpload').addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
             state.about.profileImg = await fileToBase64(file);
             $('profileImg').src = state.about.profileImg;
-            $('profileImg').style.display = 'block';
+            updatePhotoUI();
             Storage.save(state);
             showToast('照片已更新');
         });
+
+        const updateQRUI = () => {
+            if (state.about.qrImg) {
+                $('qrImg').style.display = 'block';
+                $('qrPlaceholder').style.display = 'none';
+                $('qrReplace').style.display = 'flex';
+            } else {
+                $('qrImg').style.display = 'none';
+                $('qrPlaceholder').style.display = 'flex';
+                $('qrReplace').style.display = 'none';
+            }
+        };
 
         $('qrCode').addEventListener('click', () => $('qrUpload').click());
         $('qrUpload').addEventListener('change', async (e) => {
@@ -345,7 +377,7 @@
             if (!file) return;
             state.about.qrImg = await fileToBase64(file);
             $('qrImg').src = state.about.qrImg;
-            $('qrImg').style.display = 'block';
+            updateQRUI();
             Storage.save(state);
             showToast('二维码已更新');
         });
