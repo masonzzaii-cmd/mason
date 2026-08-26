@@ -72,6 +72,7 @@
                 about: {
                     profileImg: '',
                     qrImg: '',
+                    bandImg: '',
                     resumeFile: '',
                     resumeName: ''
                 },
@@ -317,83 +318,95 @@
 
     // ===== 关于我 =====
     function initAboutCard() {
-        const card = $('card3d');
+        const iframe = $('lanyardIframe');
+        const frontUpload = $('frontUpload');
+        const backUpload = $('backUpload');
+        const bandUpload = $('bandUpload');
+        const tabs = $$('.tab-btn');
+        let iframeReady = false;
 
-        if (state.about.profileImg) {
-            $('profileImg').src = state.about.profileImg;
-            $('profileImg').style.display = 'block';
-            $('photoPlaceholder').style.display = 'none';
-            $('photoReplace').style.display = 'flex';
-        }
-        if (state.about.qrImg) {
-            $('qrImg').src = state.about.qrImg;
-            $('qrImg').style.display = 'block';
-            $('qrPlaceholder').style.display = 'none';
-            $('qrReplace').style.display = 'flex';
-        }
+        // Wait for iframe to be ready
+        window.addEventListener('message', (e) => {
+            if (e.data && e.data.type === 'ready') {
+                iframeReady = true;
+                // Send existing images from state
+                if (state.about.profileImg) {
+                    iframe.contentWindow?.postMessage({ type: 'setFront', image: state.about.profileImg }, '*');
+                }
+                if (state.about.qrImg) {
+                    iframe.contentWindow?.postMessage({ type: 'setBack', image: state.about.qrImg }, '*');
+                }
+                if (state.about.bandImg) {
+                    iframe.contentWindow?.postMessage({ type: 'setBand', image: state.about.bandImg }, '*');
+                }
+            }
+        });
 
-        const updatePhotoUI = () => {
-            if (state.about.profileImg) {
-                $('profileImg').style.display = 'block';
-                $('photoPlaceholder').style.display = 'none';
-                $('photoReplace').style.display = 'flex';
+        const sendToIframe = (data) => {
+            if (iframeReady) {
+                iframe.contentWindow?.postMessage(data, '*');
             } else {
-                $('profileImg').style.display = 'none';
-                $('photoPlaceholder').style.display = 'flex';
-                $('photoReplace').style.display = 'none';
+                setTimeout(() => {
+                    iframe.contentWindow?.postMessage(data, '*');
+                }, 500);
             }
         };
 
-        $('cardPhoto').addEventListener('click', () => $('profileUpload').click());
-        $('metaEdit').addEventListener('click', (e) => {
-            e.stopPropagation();
-            $('profileUpload').click();
-        });
-        $('profileUpload').addEventListener('change', async (e) => {
+        if (state.about.profileImg) {
+            sendToIframe({ type: 'setFront', image: state.about.profileImg });
+        }
+        if (state.about.qrImg) {
+            sendToIframe({ type: 'setBack', image: state.about.qrImg });
+        }
+        if (state.about.bandImg) {
+            sendToIframe({ type: 'setBand', image: state.about.bandImg });
+        }
+
+        // Front card upload
+        frontUpload?.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
             state.about.profileImg = await fileToBase64(file);
-            $('profileImg').src = state.about.profileImg;
-            updatePhotoUI();
+            sendToIframe({ type: 'setFront', image: state.about.profileImg });
             Storage.save(state);
-            showToast('照片已更新');
+            showToast('正面照片已更新');
         });
 
-        const updateQRUI = () => {
-            if (state.about.qrImg) {
-                $('qrImg').style.display = 'block';
-                $('qrPlaceholder').style.display = 'none';
-                $('qrReplace').style.display = 'flex';
-            } else {
-                $('qrImg').style.display = 'none';
-                $('qrPlaceholder').style.display = 'flex';
-                $('qrReplace').style.display = 'none';
-            }
-        };
-
-        $('qrCode').addEventListener('click', () => $('qrUpload').click());
-        $('qrUpload').addEventListener('change', async (e) => {
+        // Back card (QR code) upload
+        backUpload?.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
             state.about.qrImg = await fileToBase64(file);
-            $('qrImg').src = state.about.qrImg;
-            updateQRUI();
+            sendToIframe({ type: 'setBack', image: state.about.qrImg });
             Storage.save(state);
             showToast('二维码已更新');
         });
 
-        $('flipBtn').addEventListener('click', () => card.classList.toggle('flipped'));
+        // Band/lanyard upload
+        bandUpload?.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            state.about.bandImg = await fileToBase64(file);
+            sendToIframe({ type: 'setBand', image: state.about.bandImg });
+            Storage.save(state);
+            showToast('挂绳图已更新');
+        });
 
-        $$('.tab-btn').forEach(btn => {
+        // Tab switching (front/back)
+        tabs.forEach(btn => {
             btn.addEventListener('click', () => {
-                $$('.tab-btn').forEach(b => b.classList.remove('active'));
+                tabs.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                card.classList.toggle('flipped', btn.dataset.tab === 'back');
+                if (btn.dataset.tab === 'back') {
+                    iframe.style.transform = 'scaleX(-1)';
+                } else {
+                    iframe.style.transform = '';
+                }
             });
         });
 
-        $('resumeUploadBtn').addEventListener('click', () => $('resumeUpload').click());
-        $('resumeUpload').addEventListener('change', async (e) => {
+        $('resumeUploadBtn')?.addEventListener('click', () => $('resumeUpload').click());
+        $('resumeUpload')?.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
             state.about.resumeFile = await fileToBase64(file);
@@ -402,14 +415,15 @@
             showToast('简历已上传');
         });
 
-        $('resumeDownload').addEventListener('click', () => {
+        $('resumeDownload')?.addEventListener('click', () => {
             if (!state.about.resumeFile) {
                 showToast('请先上传简历文件');
+                $('resumeUploadBtn').click();
                 return;
             }
             const a = document.createElement('a');
             a.href = state.about.resumeFile;
-            a.download = state.about.resumeName || 'resume.pdf';
+            a.download = state.about.resumeName || '简历.pdf';
             a.click();
         });
     }
