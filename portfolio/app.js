@@ -273,35 +273,56 @@
     function initHeroVideo() {
         const upload = $('videoUpload');
         const replaceBtn = $('replaceVideoBtn');
+        const muxBtn = $('muxVideoBtn');
         const iframe = $('heroIframe');
         const videoBg = $('heroVideoBg');
 
-        // 如果用户之前上传了本地视频，替换iframe为video
+        const MUX_URL = 'https://player.mux.com/UOe002xrKYukcHvtY01CBNd02B29liySv3S7003CqtwP1h8?autoplay=muted&loop=1&background=1&muted=1&playsinline=1&metadata-video-title=kling_video';
+
+        function showIframe() {
+            iframe.src = MUX_URL;
+            iframe.style.display = 'block';
+            videoBg.classList.add('has-video');
+        }
+
+        function hideIframe() {
+            iframe.src = '';
+            iframe.style.display = 'none';
+            videoBg.classList.remove('has-video');
+        }
+
+        // If user has uploaded a local video, use it
         if (state.hero.videoBg && state.hero.videoBg.startsWith('data:')) {
             videoBg.innerHTML = `
                 <video autoplay muted loop playsinline id="heroVideo" style="width:100%;height:100%;object-fit:cover;">
                     <source src="${state.hero.videoBg}" type="video/mp4">
                 </video>
+                <div class="hero-static-bg">
+                    <div class="hero-bg-gradient"></div>
+                    <div class="hero-bg-pattern"></div>
+                    <div class="hero-bg-glow"></div>
+                </div>
                 <div class="hero-video-controls">
                     <button id="replaceVideoBtn" title="替换背景视频">
                         <i class="fas fa-video"></i> 替换背景
                     </button>
+                    <button id="muxVideoBtn" title="使用Mux视频">
+                        <i class="fas fa-play-circle"></i> Mux视频
+                    </button>
                 </div>
                 <input type="file" id="videoUpload" accept="video/*" hidden>
             `;
-            setupUpload();
+            videoBg.classList.add('has-video');
+            setupEvents();
         }
 
-        if (replaceBtn) {
-            replaceBtn.addEventListener('click', () => {
-                $('videoUpload').click();
-            });
-        }
+        setupEvents();
 
-        setupUpload();
-
-        function setupUpload() {
+        function setupEvents() {
             const up = $('videoUpload');
+            const repBtn = $('replaceVideoBtn');
+            const mBtn = $('muxVideoBtn');
+
             if (up) {
                 up.addEventListener('change', async (e) => {
                     const file = e.target.files[0];
@@ -309,8 +330,24 @@
                     state.hero.videoBg = await fileToBase64(file);
                     Storage.save(state);
                     showToast('背景视频已更新');
-                    // 替换iframe为video
                     location.reload();
+                });
+            }
+
+            if (repBtn) {
+                repBtn.addEventListener('click', () => {
+                    $('videoUpload').click();
+                });
+            }
+
+            if (mBtn) {
+                mBtn.addEventListener('click', () => {
+                    if (state.hero.videoBg && state.hero.videoBg.startsWith('data:')) {
+                        showToast('已有本地视频，请先清除后再使用Mux');
+                    } else {
+                        showIframe();
+                        showToast('正在加载Mux视频...');
+                    }
                 });
             }
         }

@@ -58,17 +58,26 @@
     <div class="hero-video-bg" id="heroVideoBg">
         <iframe 
             id="heroIframe"
-            src="https://player.mux.com/UOe002xrKYukcHvtY01CBNd02B29liySv3S7003CqtwP1h8?autoplay=muted&loop=1&background=1&muted=1&playsinline=1"
+            src=""
             frameborder="0"
             allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
             allowfullscreen
             webkitallowfullscreen
             mozallowfullscreen
-            scrolling="no">
+            scrolling="no"
+            style="display:none;">
         </iframe>
+        <div class="hero-static-bg" id="heroStaticBg">
+            <div class="hero-bg-gradient"></div>
+            <div class="hero-bg-pattern"></div>
+            <div class="hero-bg-glow"></div>
+        </div>
         <div class="hero-video-controls">
             <button id="replaceVideoBtn" title="替换背景视频">
                 <i class="fas fa-video"></i> 替换背景
+            </button>
+            <button id="muxVideoBtn" title="使用Mux视频">
+                <i class="fas fa-play-circle"></i> Mux视频
             </button>
         </div>
         <input type="file" id="videoUpload" accept="video/*" hidden>
