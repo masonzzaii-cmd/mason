@@ -1,8 +1,6 @@
-import { Project } from '../types';
-import { sortProjectsByDateDesc } from '../utils/projectSorter';
+import type { Project } from '../types/project';
 
-// 包含所有最新编辑的项目代表作、PDF链接名称与图片URL
-const RAW_DEFAULT_PROJECTS: Project[] = [
+export const DEFAULT_PROJECTS_LIST: Project[] = [
   {
     "id": "p1",
     "number": "01",
@@ -85,7 +83,7 @@ const RAW_DEFAULT_PROJECTS: Project[] = [
       "Estate Luxury",
       "Full Furnishing"
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=1200&q=80",
+    "imageUrl": "/projects/img_b03596b5494a.jpg",
     "galleryImages": [
       "https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=1400&q=85",
       "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1400&q=85",
@@ -97,8 +95,47 @@ const RAW_DEFAULT_PROJECTS: Project[] = [
     "gradient": "bg-gradient-to-br from-[#1d1b22] via-[#0e0d11] to-[#050608]"
   },
   {
-    "id": "p16",
+    "id": "p21",
     "number": "03",
+    "title": "深圳华侨城·天鹅堡三期 270° 山海大宅软装全案",
+    "category": "别墅私宅",
+    "brand": "华侨城 OCT",
+    "year": "2024.08",
+    "location": "广东 · 深圳",
+    "description": "以海洋与礁石为叙事的山海艺术私宅，将深圳湾天然光韵与自然纹理融入软装矩阵。",
+    "details": "项目雄踞深圳湾头排海景资源，设计以\"浮在海上的艺术客厅\"为核心叙事。客厅选用 Poliform 海洋蓝丝绒主沙发 + Minotti 悬浮茶台，搭配天然海纹石背景墙与海浪手工地毯；主卧通过渐变蓝真丝硬包与流线型床屏打造沉浸式海洋卧室氛围。全屋艺术品由当代水墨艺术家定制，以礁石与浪涛为题，呼应窗外 270° 山海景观。",
+    "scope": [
+      "全案软装概念与色彩策划",
+      "进口家具 / 灯具 / 地毯采购矩阵",
+      "当代水墨艺术画作策展与装裱",
+      "窗帘硬包深化与现场摆场摄影"
+    ],
+    "materials": [
+      "海纹天然奢石",
+      "意大利 Poliform 丝绒面料",
+      "手工编织羊毛地毯（海洋纹）",
+      "蓝金沙天然木皮",
+      "当代水墨艺术家定制国画"
+    ],
+    "tags": [
+      "OCT Shenzhen",
+      "Sea View Villa",
+      "Ocean Art"
+    ],
+    "imageUrl": "https://images.unsplash.com/photo-1600566753086-00f18fe6ba66?auto=format&fit=crop&w=1200&q=80",
+    "galleryImages": [
+      "https://images.unsplash.com/photo-1600566753086-00f18fe6ba66?auto=format&fit=crop&w=1400&q=85",
+      "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1400&q=85",
+      "https://images.unsplash.com/photo-1600210492493-0946911123ea?auto=format&fit=crop&w=1400&q=85",
+      "https://images.unsplash.com/photo-1600607687644-c7171b42498f?auto=format&fit=crop&w=1400&q=85"
+    ],
+    "pdfUrl": "/陈梅生-资深软装设计师-个人简历.pdf",
+    "pdfFileName": "深圳华侨城天鹅堡-全案软装设计方案.pdf",
+    "gradient": "bg-gradient-to-br from-[#0d1c2e] via-[#121a25] to-[#070a0e]"
+  },
+  {
+    "id": "p16",
+    "number": "04",
     "title": "侨鑫 · 汇悦台 顶层复式 520㎡ 现代轻奢滨江私宅",
     "category": "别墅私宅",
     "brand": "侨鑫集团 / 私人顶豪业主",
@@ -136,7 +173,7 @@ const RAW_DEFAULT_PROJECTS: Project[] = [
   },
   {
     "id": "p9",
-    "number": "04",
+    "number": "05",
     "title": "私人藏家 · 当代先锋艺术与名家家具收藏私宅",
     "category": "别墅私宅",
     "brand": "私人当代艺术藏家",
@@ -174,7 +211,7 @@ const RAW_DEFAULT_PROJECTS: Project[] = [
   },
   {
     "id": "p4",
-    "number": "05",
+    "number": "06",
     "title": "华润置地 · 润府天境 480㎡ 环幕江景大平层私宅",
     "category": "别墅私宅",
     "brand": "华润置地 / 私人大宅业主",
@@ -212,7 +249,7 @@ const RAW_DEFAULT_PROJECTS: Project[] = [
   },
   {
     "id": "p10",
-    "number": "06",
+    "number": "07",
     "title": "家和家居 · 全案软装生活美学概念研发中心",
     "category": "品牌单店",
     "brand": "广州家和家居文化创意",
@@ -249,7 +286,7 @@ const RAW_DEFAULT_PROJECTS: Project[] = [
   },
   {
     "id": "p20",
-    "number": "07",
+    "number": "08",
     "title": "蔚来汽车 · 城市 NIO House 用户俱乐部体验空间",
     "category": "商业展厅",
     "brand": "蔚来汽车 / NIO Inc.",
@@ -286,8 +323,47 @@ const RAW_DEFAULT_PROJECTS: Project[] = [
     "gradient": "bg-gradient-to-br from-[#121922] via-[#080d13] to-[#050608]"
   },
   {
+    "id": "p22",
+    "number": "09",
+    "title": "杭州绿城 · 桃源里 新中式合院别墅软装全案",
+    "category": "别墅私宅",
+    "brand": "绿城中国 / GREENTOWN",
+    "year": "2024.03",
+    "location": "浙江 · 杭州",
+    "details": "以\"宋代美学 · 当代桃源\"为主题，将宋式家具线条、缂丝工艺与文人画意境融入现代生活方式。客厅采用大漆髹饰主茶台 + 铜脚胡桃木围榻组合；餐厅悬挂缂丝艺术家定制《桃源春居图》；书房以明代官帽椅为原型，搭配小叶紫檀书案与宣纸吊灯，打造江南文人理想生活空间。",
+    "description": "江南文人式美学合院，将宋代极简美学与当代居住舒适度融合，实现业主\"不出城郭而获山水之怡\"的理想。",
+    "scope": [
+      "新中式宋式美学全案策划",
+      "大漆家具 / 缂丝艺术 / 小叶紫檀定制",
+      "书画与瓷器艺术策展陈",
+      "庭院与室内软装联动造景"
+    ],
+    "materials": [
+      "小叶紫檀",
+      "大漆髹饰工艺",
+      "缂丝定制艺术品",
+      "宣纸透光吊灯",
+      "天然青石板"
+    ],
+    "tags": [
+      "Greentown",
+      "Chinese Sung Aesthetic",
+      "Heritage Villa"
+    ],
+    "imageUrl": "https://images.unsplash.com/photo-1600585154363-67eb9e2e2099?auto=format&fit=crop&w=1200&q=80",
+    "galleryImages": [
+      "https://images.unsplash.com/photo-1600585154363-67eb9e2e2099?auto=format&fit=crop&w=1400&q=85",
+      "https://images.unsplash.com/photo-1600210492493-0946911123ea?auto=format&fit=crop&w=1400&q=85",
+      "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1400&q=85",
+      "https://images.unsplash.com/photo-1600573472550-8090b5e0745e?auto=format&fit=crop&w=1400&q=85"
+    ],
+    "pdfUrl": "/陈梅生-资深软装设计师-个人简历.pdf",
+    "pdfFileName": "杭州绿城桃源里-新中式合院软装方案.pdf",
+    "gradient": "bg-gradient-to-br from-[#1a160b] via-[#0f141a] to-[#080a0c]"
+  },
+  {
     "id": "p15",
-    "number": "08",
+    "number": "10",
     "title": "隐山居 · 当代禅意茶空间与宋代美学沉浸展厅",
     "category": "私人客户",
     "brand": "隐山居文化茶社 / YIN SHAN JU",
@@ -325,7 +401,7 @@ const RAW_DEFAULT_PROJECTS: Project[] = [
   },
   {
     "id": "p13",
-    "number": "09",
+    "number": "11",
     "title": "恒基兆业 · 顶级天际私享会所与雪茄威士忌吧",
     "category": "商业展厅",
     "brand": "恒基兆业地产 / HENDERSON LAND",
@@ -363,7 +439,7 @@ const RAW_DEFAULT_PROJECTS: Project[] = [
   },
   {
     "id": "p7",
-    "number": "10",
+    "number": "12",
     "title": "万科地产 · 都会精英活力现代都会风样板间",
     "category": "房地产样板房",
     "brand": "万科集团 / VANKE",
@@ -401,7 +477,7 @@ const RAW_DEFAULT_PROJECTS: Project[] = [
   },
   {
     "id": "p18",
-    "number": "11",
+    "number": "13",
     "title": "国际画廊 · 当代艺术陈设与大型公共雕塑策展",
     "category": "私人客户",
     "brand": "ART+ 国际当代艺术画廊",
@@ -439,7 +515,7 @@ const RAW_DEFAULT_PROJECTS: Project[] = [
   },
   {
     "id": "p3",
-    "number": "12",
+    "number": "14",
     "title": "欧派家居 · 高定空间美学全球旗舰展厅",
     "category": "商业展厅",
     "brand": "欧派家居集团 / OPPEIN",
@@ -477,7 +553,7 @@ const RAW_DEFAULT_PROJECTS: Project[] = [
   },
   {
     "id": "p11",
-    "number": "13",
+    "number": "15",
     "title": "越秀地产 · 星樾云山山景纯墅示范区样板空间",
     "category": "房地产样板房",
     "brand": "越秀地产 / YUEXIU",
@@ -515,7 +591,7 @@ const RAW_DEFAULT_PROJECTS: Project[] = [
   },
   {
     "id": "p2",
-    "number": "14",
+    "number": "16",
     "title": "保利发展 · 湾区天悦顶层复式天际样板大宅",
     "category": "房地产样板房",
     "brand": "保利发展控股 / POLY",
@@ -554,7 +630,7 @@ const RAW_DEFAULT_PROJECTS: Project[] = [
   },
   {
     "id": "p17",
-    "number": "15",
+    "number": "17",
     "title": "美的置业 · 智慧健康未来生活体验馆与数字化展厅",
     "category": "商业展厅",
     "brand": "美的置业 / MIDEA REAL ESTATE",
@@ -592,7 +668,7 @@ const RAW_DEFAULT_PROJECTS: Project[] = [
   },
   {
     "id": "p6",
-    "number": "16",
+    "number": "18",
     "title": "招商蛇口 · 玺樾府新中式江南院落合院别墅",
     "category": "别墅私宅",
     "brand": "招商蛇口 / CHINA MERCHANTS",
@@ -630,7 +706,7 @@ const RAW_DEFAULT_PROJECTS: Project[] = [
   },
   {
     "id": "p8",
-    "number": "17",
+    "number": "19",
     "title": "融创中国 · 岭南国际温泉度假酒店公区与行政酒廊",
     "category": "商业展厅",
     "brand": "融创中国 / SUNAC",
@@ -668,7 +744,7 @@ const RAW_DEFAULT_PROJECTS: Project[] = [
   },
   {
     "id": "p5",
-    "number": "18",
+    "number": "20",
     "title": "梵几 · 人文东方美学生活馆与慢生活体验空间",
     "category": "品牌单店",
     "brand": "梵几生活美学 / Fnji",
@@ -705,7 +781,7 @@ const RAW_DEFAULT_PROJECTS: Project[] = [
   },
   {
     "id": "p19",
-    "number": "19",
+    "number": "21",
     "title": "绿城中国 · 桃花源中式江南水墨园林合院",
     "category": "别墅私宅",
     "brand": "绿城中国 / GREENTOWN",
@@ -743,7 +819,7 @@ const RAW_DEFAULT_PROJECTS: Project[] = [
   },
   {
     "id": "p14",
-    "number": "20",
+    "number": "22",
     "title": "金茂府 · 绿色科技健康住宅 360㎡ 旗舰艺术样板房",
     "category": "房地产样板房",
     "brand": "中国金茂 / JINMAO",
@@ -778,84 +854,6 @@ const RAW_DEFAULT_PROJECTS: Project[] = [
     "pdfUrl": "/陈梅生-资深软装设计师-个人简历.pdf",
     "pdfFileName": "金茂府科技住宅-软装全案实施方案.pdf",
     "gradient": "bg-gradient-to-br from-[#121e1a] via-[#09110e] to-[#050608]"
-  },
-  {
-    "id": "p21",
-    "number": "21",
-    "title": "深圳华侨城·天鹅堡三期 270° 山海大宅软装全案",
-    "category": "别墅私宅",
-    "brand": "华侨城 OCT",
-    "year": "2024.08",
-    "location": "广东 · 深圳",
-    "description": "以海洋与礁石为叙事的山海艺术私宅，将深圳湾天然光韵与自然纹理融入软装矩阵。",
-    "details": "项目雄踞深圳湾头排海景资源，设计以\"浮在海上的艺术客厅\"为核心叙事。客厅选用 Poliform 海洋蓝丝绒主沙发 + Minotti 悬浮茶台，搭配天然海纹石背景墙与海浪手工地毯；主卧通过渐变蓝真丝硬包与流线型床屏打造沉浸式海洋卧室氛围。全屋艺术品由当代水墨艺术家定制，以礁石与浪涛为题，呼应窗外 270° 山海景观。",
-    "scope": [
-      "全案软装概念与色彩策划",
-      "进口家具 / 灯具 / 地毯采购矩阵",
-      "当代水墨艺术画作策展与装裱",
-      "窗帘硬包深化与现场摆场摄影"
-    ],
-    "materials": [
-      "海纹天然奢石",
-      "意大利 Poliform 丝绒面料",
-      "手工编织羊毛地毯（海洋纹）",
-      "蓝金沙天然木皮",
-      "当代水墨艺术家定制国画"
-    ],
-    "tags": [
-      "OCT Shenzhen",
-      "Sea View Villa",
-      "Ocean Art"
-    ],
-    "imageUrl": "https://images.unsplash.com/photo-1600566753086-00f18fe6ba66?auto=format&fit=crop&w=1200&q=80",
-    "galleryImages": [
-      "https://images.unsplash.com/photo-1600566753086-00f18fe6ba66?auto=format&fit=crop&w=1400&q=85",
-      "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1400&q=85",
-      "https://images.unsplash.com/photo-1600210492493-0946911123ea?auto=format&fit=crop&w=1400&q=85",
-      "https://images.unsplash.com/photo-1600607687644-c7171b42498f?auto=format&fit=crop&w=1400&q=85"
-    ],
-    "pdfUrl": "/陈梅生-资深软装设计师-个人简历.pdf",
-    "pdfFileName": "深圳华侨城天鹅堡-全案软装设计方案.pdf",
-    "gradient": "bg-gradient-to-br from-[#0d1c2e] via-[#121a25] to-[#070a0e]"
-  },
-  {
-    "id": "p22",
-    "number": "22",
-    "title": "杭州绿城 · 桃源里 新中式合院别墅软装全案",
-    "category": "别墅私宅",
-    "brand": "绿城中国 / GREENTOWN",
-    "year": "2024.03",
-    "location": "浙江 · 杭州",
-    "details": "以\"宋代美学 · 当代桃源\"为主题，将宋式家具线条、缂丝工艺与文人画意境融入现代生活方式。客厅采用大漆髹饰主茶台 + 铜脚胡桃木围榻组合；餐厅悬挂缂丝艺术家定制《桃源春居图》；书房以明代官帽椅为原型，搭配小叶紫檀书案与宣纸吊灯，打造江南文人理想生活空间。",
-    "description": "江南文人式美学合院，将宋代极简美学与当代居住舒适度融合，实现业主\"不出城郭而获山水之怡\"的理想。",
-    "scope": [
-      "新中式宋式美学全案策划",
-      "大漆家具 / 缂丝艺术 / 小叶紫檀定制",
-      "书画与瓷器艺术策展陈",
-      "庭院与室内软装联动造景"
-    ],
-    "materials": [
-      "小叶紫檀",
-      "大漆髹饰工艺",
-      "缂丝定制艺术品",
-      "宣纸透光吊灯",
-      "天然青石板"
-    ],
-    "tags": [
-      "Greentown",
-      "Chinese Sung Aesthetic",
-      "Heritage Villa"
-    ],
-    "imageUrl": "https://images.unsplash.com/photo-1600585154363-67eb9e2e2099?auto=format&fit=crop&w=1200&q=80",
-    "galleryImages": [
-      "https://images.unsplash.com/photo-1600585154363-67eb9e2e2099?auto=format&fit=crop&w=1400&q=85",
-      "https://images.unsplash.com/photo-1600210492493-0946911123ea?auto=format&fit=crop&w=1400&q=85",
-      "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1400&q=85",
-      "https://images.unsplash.com/photo-1600573472550-8090b5e0745e?auto=format&fit=crop&w=1400&q=85"
-    ],
-    "pdfUrl": "/陈梅生-资深软装设计师-个人简历.pdf",
-    "pdfFileName": "杭州绿城桃源里-新中式合院软装方案.pdf",
-    "gradient": "bg-gradient-to-br from-[#1a160b] via-[#0f141a] to-[#080a0c]"
   },
   {
     "id": "p23",
@@ -936,5 +934,3 @@ const RAW_DEFAULT_PROJECTS: Project[] = [
     "gradient": "bg-gradient-to-br from-[#1f151c] via-[#12131a] to-[#090a0e]"
   }
 ];
-
-export const DEFAULT_PROJECTS_LIST: Project[] = sortProjectsByDateDesc(RAW_DEFAULT_PROJECTS);
