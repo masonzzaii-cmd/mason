@@ -1,78 +1,54 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, MapPin, Compass, Award, User, QrCode, RotateCw, Camera, Upload, RefreshCw, Sparkles, Check, Lock } from 'lucide-react';
-import { useAdmin } from '../context/AdminContext';
 import {
-  fetchSiteContent,
-  upsertSiteContent,
-  uploadAssetToStorage,
-  isSupabaseConfigured,
-} from '../utils/supabaseClient';
+  Mail,
+  MapPin,
+  Compass,
+  Award,
+  User,
+  QrCode,
+  RotateCw,
+  Camera,
+  Upload,
+  RefreshCw,
+  Sparkles,
+  Check,
+} from 'lucide-react';
 
-export const LanyardCard: React.FC = () => {
-  const { isAdmin, openLoginModal, showToast } = useAdmin();
+export interface LanyardCardProps {
+  initialPhotoUrl?: string;
+  initialQrUrl?: string;
+}
+
+export const LanyardCard: React.FC<LanyardCardProps> = ({
+  initialPhotoUrl = '/mason-portrait.jpg',
+  initialQrUrl = '/wechat-qr.png',
+}) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [imgScale, setImgScale] = useState<number>(1);
+  const [fitMode, setFitMode] = useState<'cover' | 'contain' | 'closeup'>('cover');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const qrInputRef = useRef<HTMLInputElement>(null);
 
-  const [fitMode, setFitMode] = useState<'cover' | 'contain' | 'closeup'>('cover');
-
-  // Default photo paths with anti-cache query
-  const DEFAULT_PHOTO = '/mason-portrait.jpg?v=' + Date.now();
-  const DEFAULT_QR = '/wechat-qr.png';
-
-  // Photo state with Supabase & localStorage persistence
   const [photoUrl, setPhotoUrl] = useState<string>(() => {
     try {
-      const saved = localStorage.getItem('mason_custom_portrait');
-      return saved || DEFAULT_PHOTO;
+      return localStorage.getItem('custom_portrait') || initialPhotoUrl;
     } catch {
-      return DEFAULT_PHOTO;
+      return initialPhotoUrl;
     }
   });
 
-  // QR Code state with Supabase & localStorage persistence
   const [qrUrl, setQrUrl] = useState<string>(() => {
     try {
-      const saved = localStorage.getItem('mason_custom_qr');
-      return saved || DEFAULT_QR;
+      return localStorage.getItem('custom_qr') || initialQrUrl;
     } catch {
-      return DEFAULT_QR;
+      return initialQrUrl;
     }
   });
-
-  // Load cloud photo and QR on mount
-  useEffect(() => {
-    let isMounted = true;
-    (async () => {
-      try {
-        const cloudPhoto = await fetchSiteContent('about', 'photo');
-        if (isMounted && cloudPhoto && cloudPhoto.trim()) {
-          setPhotoUrl(cloudPhoto.trim());
-          try {
-            localStorage.setItem('mason_custom_portrait', cloudPhoto.trim());
-          } catch (e) {}
-        }
-
-        const cloudQr = await fetchSiteContent('about', 'qr');
-        if (isMounted && cloudQr && cloudQr.trim()) {
-          setQrUrl(cloudQr.trim());
-          try {
-            localStorage.setItem('mason_custom_qr', cloudQr.trim());
-          } catch (e) {}
-        }
-      } catch (err) {
-        console.warn('Failed to load cloud photo from Supabase:', err);
-      }
-    })();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -91,110 +67,37 @@ export const LanyardCard: React.FC = () => {
     setIsFlipped((prev) => !prev);
   };
 
-  // Handle portrait image file selection and upload to Supabase
-  const processFile = async (file: File) => {
+  const processImageFile = (file: File, isQr = false) => {
     if (!file.type.startsWith('image/')) {
       alert('请选择有效的图片文件（JPG, PNG, WEBP等）');
       return;
     }
-
-    // 1. Instant local preview
     const reader = new FileReader();
     reader.onload = (e) => {
       const result = e.target?.result as string;
       if (result) {
-        setPhotoUrl(result);
-        try {
-          localStorage.setItem('mason_custom_portrait', result);
-        } catch {}
+        if (isQr) {
+          setQrUrl(result);
+          try {
+            localStorage.setItem('custom_qr', result);
+          } catch {}
+        } else {
+          setPhotoUrl(result);
+          try {
+            localStorage.setItem('custom_portrait', result);
+          } catch {}
+        }
+        setUploadSuccess(true);
+        setTimeout(() => setUploadSuccess(false), 2500);
       }
     };
     reader.readAsDataURL(file);
-
-    // 2. Upload to Supabase Storage assets bucket and update site_content table
-    if (isSupabaseConfigured()) {
-      try {
-        const publicUrl = await uploadAssetToStorage(file, 'mason_portrait');
-        if (publicUrl) {
-          setPhotoUrl(publicUrl);
-          try {
-            localStorage.setItem('mason_custom_portrait', publicUrl);
-          } catch {}
-          await upsertSiteContent('about', 'photo', publicUrl);
-          showToast('☁️ 3D 卡片照片已成功上传至 Supabase Storage assets 存储桶并保存！');
-        }
-      } catch (err: any) {
-        console.error('Supabase photo upload error:', err);
-        showToast(`⚠️ 图片已保存在本地，云端上传提示: ${err?.message || '请检查 assets 桶'}`);
-      }
-    } else {
-      showToast('3D 卡片照片已更新至本地！');
-    }
-
-    setUploadSuccess(true);
-    setTimeout(() => setUploadSuccess(false), 2500);
   };
 
-  // Handle QR code image file selection and upload to Supabase
-  const processQrFile = async (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      alert('请选择有效的图片文件（JPG, PNG, WEBP等）');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const result = e.target?.result as string;
-      if (result) {
-        setQrUrl(result);
-        try {
-          localStorage.setItem('mason_custom_qr', result);
-        } catch {}
-      }
-    };
-    reader.readAsDataURL(file);
-
-    if (isSupabaseConfigured()) {
-      try {
-        const publicUrl = await uploadAssetToStorage(file, 'mason_wechat_qr');
-        if (publicUrl) {
-          setQrUrl(publicUrl);
-          try {
-            localStorage.setItem('mason_custom_qr', publicUrl);
-          } catch {}
-          await upsertSiteContent('about', 'qr', publicUrl);
-          showToast('☁️ 微信二维码已成功上传至 Supabase Storage assets 桶并保存！');
-        }
-      } catch (err: any) {
-        console.error('Supabase QR upload error:', err);
-      }
-    }
-
-    setUploadSuccess(true);
-    setTimeout(() => setUploadSuccess(false), 2500);
-  };
-
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      processFile(file);
-    }
-  };
-
-  const handleQrInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      processQrFile(file);
-    }
-  };
-
-  // Drag and Drop handlers
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (isAdmin) {
-      setIsDragging(true);
-    }
+    setIsDragging(true);
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
@@ -207,102 +110,43 @@ export const LanyardCard: React.FC = () => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
-    if (!isAdmin) {
-      openLoginModal();
-      return;
-    }
     const file = e.dataTransfer.files?.[0];
     if (file) {
-      if (isFlipped) {
-        processQrFile(file);
-      } else {
-        processFile(file);
-      }
+      processImageFile(file, isFlipped);
     }
-  };
-
-  const handleResetPhoto = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!isAdmin) {
-      openLoginModal();
-      return;
-    }
-    setPhotoUrl(DEFAULT_PHOTO);
-    setImgScale(1);
-    try {
-      localStorage.removeItem('mason_custom_portrait');
-    } catch {
-      // ignore
-    }
-  };
-
-  const handleResetQr = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!isAdmin) {
-      openLoginModal();
-      return;
-    }
-    setQrUrl(DEFAULT_QR);
-    try {
-      localStorage.removeItem('mason_custom_qr');
-    } catch {
-      // ignore
-    }
-  };
-
-  const triggerFilePicker = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!isAdmin) {
-      openLoginModal();
-      return;
-    }
-    fileInputRef.current?.click();
-  };
-
-  const triggerQrFilePicker = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!isAdmin) {
-      openLoginModal();
-      return;
-    }
-    qrInputRef.current?.click();
   };
 
   return (
     <div className="relative flex flex-col items-center justify-center py-4 select-none max-w-full">
-      {/* Hidden File Input for Avatar Photo */}
       <input
         type="file"
         ref={fileInputRef}
-        onChange={handleFileInputChange}
+        onChange={(e) => e.target.files?.[0] && processImageFile(e.target.files[0], false)}
         accept="image/*"
         className="hidden"
       />
-
-      {/* Hidden File Input for QR Code */}
       <input
         type="file"
         ref={qrInputRef}
-        onChange={handleQrInputChange}
+        onChange={(e) => e.target.files?.[0] && processImageFile(e.target.files[0], true)}
         accept="image/*"
         className="hidden"
       />
 
-      {/* Top Action Control Bar */}
       <div className="flex items-center justify-center gap-2 mb-4 bg-[#0d1017]/90 px-4 py-2 rounded-2xl border border-[#b4935d]/40 shadow-2xl z-30">
         <button
           onClick={(e) => {
             e.stopPropagation();
             setIsFlipped(false);
           }}
-          className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-orbitron tracking-wider transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-mono tracking-wider transition-all cursor-pointer ${
             !isFlipped
               ? 'bg-[#b4935d] text-[#050608] font-bold shadow-md'
               : 'text-[#a09483] hover:text-[#f5ebd9]'
           }`}
         >
           <User className="w-3.5 h-3.5" />
-          <span>Front Card</span>
+          <span>正面 (Front)</span>
         </button>
 
         <button
@@ -310,31 +154,29 @@ export const LanyardCard: React.FC = () => {
             e.stopPropagation();
             setIsFlipped(true);
           }}
-          className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-orbitron tracking-wider transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-mono tracking-wider transition-all cursor-pointer ${
             isFlipped
               ? 'bg-[#b4935d] text-[#050608] font-bold shadow-md'
               : 'text-[#a09483] hover:text-[#f5ebd9]'
           }`}
         >
           <QrCode className="w-3.5 h-3.5" />
-          <span>WeChat QR Code</span>
+          <span>微信名片 (WeChat QR)</span>
         </button>
       </div>
 
-      {/* Upload Notification Banner */}
       {uploadSuccess && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
-          className="mb-3 px-4 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-orbitron flex items-center gap-1.5 shadow-lg z-30"
+          className="mb-3 px-4 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-mono flex items-center gap-1.5 shadow-lg z-30"
         >
           <Check className="w-3.5 h-3.5 text-emerald-400" />
-          <span>个人照片已成功同步更新并保存！</span>
+          <span>图片已更新并保存至本地！</span>
         </motion.div>
       )}
 
-      {/* Lanyard Rope */}
       <div className="relative w-32 h-16 pointer-events-none z-10 flex flex-col items-center justify-start -mb-8">
         <svg className="w-full h-full overflow-visible" viewBox="0 0 100 80">
           <path
@@ -352,13 +194,11 @@ export const LanyardCard: React.FC = () => {
             </linearGradient>
           </defs>
         </svg>
-        {/* Metallic Clip */}
         <div className="absolute top-8 w-6 h-6 bg-gradient-to-b from-[#3a3225] via-[#1a1610] to-[#0d0a07] border border-[#b4935d]/60 rounded-sm shadow-md flex items-center justify-center">
           <div className="w-2.5 h-2.5 rounded-full border border-[#b4935d]/80 bg-[#050608]" />
         </div>
       </div>
 
-      {/* 3D Card Stage */}
       <div
         className="relative w-80 h-[550px] sm:w-[340px] sm:h-[570px] cursor-pointer group"
         style={{ perspective: '1200px' }}
@@ -366,7 +206,6 @@ export const LanyardCard: React.FC = () => {
         onMouseLeave={handleMouseLeave}
         onClick={toggleFlip}
       >
-        {/* Animated Inner Card with Framer Motion */}
         <motion.div
           className="w-full h-full relative"
           style={{ transformStyle: 'preserve-3d' }}
@@ -381,12 +220,11 @@ export const LanyardCard: React.FC = () => {
             mass: 0.8,
           }}
         >
-          {/* FRONT FACE */}
           <div
             className={`absolute inset-0 w-full h-full rounded-2xl overflow-hidden bg-gradient-to-b from-[#14161a] via-[#0d0f12] to-[#060709] border text-[#eee7db] p-5 flex flex-col justify-between shadow-[inset_0_0_30px_rgba(180,147,93,0.08)] transition-all duration-300 ${
               isDragging
                 ? 'border-emerald-400 border-2 bg-[#0d141d]'
-                : 'border-[#b4935d]/30'
+                : 'border-[#b4935d]/30 hover:border-[#b4935d]/60'
             }`}
             style={{
               backfaceVisibility: 'hidden',
@@ -396,31 +234,31 @@ export const LanyardCard: React.FC = () => {
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
           >
-            {/* Header area */}
             <div className="flex justify-between items-center border-b border-[#b4935d]/20 pb-2.5">
               <div className="flex items-center gap-1.5">
                 <div className="w-2 h-2 rounded-full bg-[#b4935d] animate-pulse" />
-                <span className="font-orbitron text-[10px] tracking-widest text-[#d8be92] uppercase font-semibold">
+                <span className="font-mono text-[10px] tracking-widest text-[#d8be92] uppercase font-semibold">
                   MASON DESIGN
                 </span>
               </div>
-              <span className="font-orbitron text-[9px] tracking-wider text-[#8e8577]">
+              <span className="font-mono text-[9px] tracking-wider text-[#8e8577]">
                 VIP PASS
               </span>
             </div>
 
-            {/* Photo Section & Card Header */}
             <div className="flex flex-col items-center my-auto">
               <div className="relative my-2 w-full flex flex-col items-center">
-                {/* Main Photo Frame (Optimized 2:3 Vertical Aspect Ratio) */}
                 <div
-                  onClick={triggerFilePicker}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    fileInputRef.current?.click();
+                  }}
                   className={`relative w-[210px] h-[300px] sm:w-[225px] sm:h-[320px] rounded-xl overflow-hidden border-2 transition-all duration-300 group/photo shadow-2xl bg-[#080808] flex items-center justify-center cursor-pointer ${
                     isDragging
                       ? 'border-emerald-400 ring-4 ring-emerald-500/20 scale-105'
-                      : 'border-[#b4935d]/50 hover:border-[#b4935d] hover:shadow-[#b4935d]/20'
+                      : 'border-[#b4935d]/50 hover:border-[#b4935d]'
                   }`}
-                  title="点击或拖拽照片更换个人形象照"
+                  title="点击或拖拽更换肖像照片"
                 >
                   <img
                     src={photoUrl}
@@ -433,68 +271,48 @@ export const LanyardCard: React.FC = () => {
                         ? 'object-cover object-[center_5%] scale-125'
                         : 'object-cover object-[center_10%]'
                     }`}
-                    onError={(e) => {
-                      // Fallback if custom image breaks
-                      (e.target as HTMLImageElement).src = DEFAULT_PHOTO;
-                    }}
                   />
 
-                  {/* Gradient Shadow Overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-[#080808]/80 via-transparent to-transparent opacity-60 pointer-events-none" />
 
-                  {/* Hover Upload Overlay Button (Admin Only) */}
-                  {isAdmin && (
-                    <div className="absolute inset-0 bg-[#080808]/70 backdrop-blur-[2px] opacity-0 group-hover/photo:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-2 p-3 text-center">
-                      <div className="p-2.5 rounded-full bg-[#b4935d] text-[#050608] shadow-lg">
-                        <Upload className="w-5 h-5 animate-bounce" />
-                      </div>
-                      <span className="text-xs font-orbitron font-bold text-[#f2dfbf] tracking-wider">
-                        点击上传/更换照片
-                      </span>
-                      <span className="text-[10px] text-[#a89d8c]">
-                        支持拖拽本地图片文件
-                      </span>
+                  <div className="absolute inset-0 bg-[#080808]/70 backdrop-blur-[2px] opacity-0 group-hover/photo:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-2 p-3 text-center">
+                    <div className="p-2.5 rounded-full bg-[#b4935d] text-[#050608] shadow-lg">
+                      <Upload className="w-5 h-5 animate-bounce" />
                     </div>
-                  )}
-
-                  {/* Drag and Drop Active Overlay (Admin Only) */}
-                  {isAdmin && isDragging && (
-                    <div className="absolute inset-0 bg-emerald-950/80 backdrop-blur-sm flex flex-col items-center justify-center gap-2 text-emerald-300 font-orbitron text-xs">
-                      <Sparkles className="w-6 h-6 text-emerald-400 animate-spin" />
-                      <span>释放以设定为此照片</span>
-                    </div>
-                  )}
-
+                    <span className="text-xs font-mono font-bold text-[#f2dfbf] tracking-wider">
+                      点击更换肖像照片
+                    </span>
+                    <span className="text-[10px] text-[#a89d8c]">
+                      支持拖拽本地图片放入
+                    </span>
+                  </div>
                 </div>
 
-                {/* Quick Photo Scale / Switch Controls under image */}
                 <div className="flex items-center gap-3 mt-2 text-[10px] text-[#a89d8c]">
-                  {isAdmin && (
-                    <>
-                      <button
-                        onClick={triggerFilePicker}
-                        className="flex items-center gap-1 hover:text-[#b4935d] transition-colors cursor-pointer"
-                      >
-                        <Camera className="w-3 h-3 text-[#b4935d]" />
-                        <span>更换照片</span>
-                      </button>
-                      <span className="text-[#3a342b]">|</span>
-                    </>
-                  )}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      fileInputRef.current?.click();
+                    }}
+                    className="flex items-center gap-1 hover:text-[#b4935d] transition-colors cursor-pointer"
+                  >
+                    <Camera className="w-3 h-3 text-[#b4935d]" />
+                    <span>更换照片</span>
+                  </button>
+                  <span className="text-[#3a342b]">|</span>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       setFitMode((m) => (m === 'cover' ? 'contain' : m === 'contain' ? 'closeup' : 'cover'));
                     }}
                     className="flex items-center gap-1 hover:text-[#f2dfbf] transition-colors cursor-pointer"
-                    title="照片呈现方式切换"
                   >
                     <span>裁切: {fitMode === 'cover' ? '半身(填充)' : fitMode === 'contain' ? '全景(无裁)' : '特写'}</span>
                   </button>
                 </div>
               </div>
 
-              <h3 className="font-orbitron text-xl font-bold text-[#f5ebd9] tracking-wider mt-1">
+              <h3 className="font-mono text-xl font-bold text-[#f5ebd9] tracking-wider mt-1">
                 MASON
               </h3>
               <p className="text-xs text-[#b4935d] font-medium tracking-wide">
@@ -502,7 +320,6 @@ export const LanyardCard: React.FC = () => {
               </p>
             </div>
 
-            {/* Specs / Tags */}
             <div className="space-y-1.5 border-t border-b border-[#b4935d]/15 py-2.5 text-[10px] text-[#a9a093]">
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-1 text-[#7a7267]">
@@ -524,16 +341,14 @@ export const LanyardCard: React.FC = () => {
               </div>
             </div>
 
-            {/* Footer Bar */}
             <div className="flex items-center justify-between text-[9px] text-[#7a7267]">
-              <span className="font-orbitron tracking-widest">VERIFIED CREATIVE</span>
-              <span className="px-2.5 py-1 rounded-full bg-[#b4935d]/20 text-[#d8be92] border border-[#b4935d]/40 font-orbitron flex items-center gap-1">
+              <span className="font-mono tracking-widest">VERIFIED CREATIVE</span>
+              <span className="px-2.5 py-1 rounded-full bg-[#b4935d]/20 text-[#d8be92] border border-[#b4935d]/40 font-mono flex items-center gap-1">
                 <RotateCw className="w-3 h-3 text-[#b4935d]" /> 点击翻转名片
               </span>
             </div>
           </div>
 
-          {/* BACK FACE */}
           <div
             className="absolute inset-0 w-full h-full rounded-2xl overflow-hidden bg-gradient-to-b from-[#14161a] via-[#0d0f12] to-[#060709] border border-[#b4935d]/30 text-[#eee7db] p-5 flex flex-col justify-between shadow-[inset_0_0_30px_rgba(180,147,93,0.08)]"
             style={{
@@ -542,100 +357,58 @@ export const LanyardCard: React.FC = () => {
               pointerEvents: isFlipped ? 'auto' : 'none',
             }}
           >
-            {/* Header area */}
             <div className="flex justify-between items-center border-b border-[#b4935d]/20 pb-2">
-              <span className="font-orbitron text-[10px] tracking-widest text-[#f2dfbf] uppercase font-semibold">
+              <span className="font-mono text-[10px] tracking-widest text-[#f2dfbf] uppercase font-semibold">
                 WECHAT CONNECT
               </span>
-              <span className="font-orbitron text-[9px] text-[#7a7267]">CARD REVERSE</span>
+              <span className="font-mono text-[9px] text-[#7a7267]">CARD REVERSE</span>
             </div>
 
-            {/* QR Code Content */}
             <div className="my-auto flex flex-col items-center text-center">
               <div className="bg-[#13151a] px-3 py-1.5 rounded-lg border border-[#b4935d]/20 mb-3 text-[11px] text-[#c9bea8] flex items-center gap-1.5">
                 <Mail className="w-3.5 h-3.5 text-[#b4935d]" />
                 <span>857422610@qq.com</span>
               </div>
 
-              {/* QR Code Frame with Hover Mask & Upload Capabilities */}
               <div
-                onClick={triggerQrFilePicker}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  qrInputRef.current?.click();
+                }}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 className={`relative w-44 h-44 bg-white rounded-xl p-2 border-2 transition-all duration-300 shadow-xl flex items-center justify-center cursor-pointer group/qr ${
                   isDragging
                     ? 'border-emerald-400 ring-4 ring-emerald-500/20 scale-105'
-                    : 'border-[#b4935d]/60 hover:border-[#b4935d] hover:shadow-[#b4935d]/30'
+                    : 'border-[#b4935d]/60 hover:border-[#b4935d]'
                 }`}
-                title="Click or drag to update WeChat QR Code / Image"
+                title="点击或拖拽更换微信二维码"
               >
                 <img
                   src={qrUrl}
-                  alt="MASON WeChat QR Code"
-                  referrerPolicy="no-referrer"
+                  alt="微信二维码"
                   className="w-full h-full object-contain rounded-lg"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/wechat-qr.svg';
-                  }}
                 />
 
-                {/* Elegant Hover Overlay Mask (Admin Only) */}
-                {isAdmin && (
-                  <div className="absolute inset-0 bg-[#080808]/85 backdrop-blur-[2px] opacity-0 group-hover/qr:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-2 p-3 text-center rounded-xl border border-[#b4935d]/40">
-                    <div className="p-2 rounded-full bg-[#b4935d] text-[#050608] shadow-lg">
-                      <Upload className="w-5 h-5 animate-bounce" />
-                    </div>
-                    <span className="text-xs font-orbitron font-bold text-[#f2dfbf] tracking-wider">
-                      CLICK / DRAG TO CHANGE QR
-                    </span>
-                    <span className="text-[10px] text-[#a89d8c]">
-                      Upload custom WeChat QR or image
-                    </span>
+                <div className="absolute inset-0 bg-[#080808]/85 backdrop-blur-[2px] opacity-0 group-hover/qr:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-2 p-3 text-center rounded-xl border border-[#b4935d]/40">
+                  <div className="p-2 rounded-full bg-[#b4935d] text-[#050608] shadow-lg">
+                    <Upload className="w-5 h-5 animate-bounce" />
                   </div>
-                )}
-
-                {/* Drag and Drop Active Overlay (Admin Only) */}
-                {isAdmin && isDragging && (
-                  <div className="absolute inset-0 bg-emerald-950/85 backdrop-blur-xs flex flex-col items-center justify-center gap-1.5 text-emerald-300 font-orbitron text-xs rounded-xl border border-emerald-400">
-                    <Sparkles className="w-5 h-5 text-emerald-400 animate-spin" />
-                    <span>RELEASE TO UPDATE QR CODE</span>
-                  </div>
-                )}
+                  <span className="text-xs font-mono font-bold text-[#f2dfbf] tracking-wider">
+                    点击更换微信二维码
+                  </span>
+                </div>
               </div>
 
-              {isAdmin && (
-                <div className="flex items-center gap-2 mt-2.5">
-                  <button
-                    onClick={triggerQrFilePicker}
-                    className="flex items-center gap-1 text-[10px] text-[#b4935d] hover:text-[#f2dfbf] transition-colors cursor-pointer"
-                  >
-                    <Camera className="w-3 h-3" />
-                    <span>CHANGE QR</span>
-                  </button>
-                  {qrUrl !== DEFAULT_QR && (
-                    <>
-                      <span className="text-[#3a342b] text-[10px]">|</span>
-                      <button
-                        onClick={handleResetQr}
-                        className="flex items-center gap-1 text-[10px] text-[#a89d8c] hover:text-[#f2dfbf] transition-colors cursor-pointer"
-                      >
-                        <RefreshCw className="w-3 h-3 text-[#b4935d]" />
-                        <span>RESET QR</span>
-                      </button>
-                    </>
-                  )}
-                </div>
-              )}
-
-              <p className="text-[10px] text-[#c5b59a] mt-2 font-orbitron tracking-wider font-semibold">
+              <p className="text-[10px] text-[#c5b59a] mt-3 font-mono tracking-wider font-semibold">
                 SCAN TO CONNECT WECHAT
               </p>
             </div>
 
             <div className="text-center border-t border-[#b4935d]/20 pt-3 text-[9px] text-[#7a7267] flex items-center justify-between">
               <span>MASON portfolio © 2026</span>
-              <span className="px-2.5 py-1 rounded-full bg-[#b4935d]/20 text-[#d8be92] border border-[#b4935d]/40 font-orbitron flex items-center gap-1">
+              <span className="px-2.5 py-1 rounded-full bg-[#b4935d]/20 text-[#d8be92] border border-[#b4935d]/40 font-mono flex items-center gap-1">
                 <RotateCw className="w-3 h-3 text-[#b4935d]" /> 点击翻看正面
               </span>
             </div>
