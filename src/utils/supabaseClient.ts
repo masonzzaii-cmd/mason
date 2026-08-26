@@ -257,8 +257,24 @@ export async function fetchSiteContent(
 }
 
 /**
+ * 检查当前会话是否为已登录的管理员（读取 AdminContext 写入的 localStorage 标记）
+ */
+function isAdminSession(): boolean {
+  try {
+    return typeof window !== 'undefined' && localStorage.getItem('mason_portfolio_admin_authorized') === 'true';
+  } catch {
+    return false;
+  }
+}
+
+/**
  * 高级封装：读取结构化数据 (JSON 对象或数组)
- * 优先级: Supabase 云端 -> 本地 IndexedDB/LocalStorage -> 传入的 fallback 默认数据
+ *
+ * 国内部署优化后的优先级：
+ *   - 访客（非管理员）：直接使用代码中的 fallback 默认数据，确保国内秒开、内容确定，
+ *     不依赖 Supabase 云端（国内访问不稳定）与本地旧缓存（可能命中过期数据）。
+ *   - 管理员：Supabase 云端 -> 本地 IndexedDB/LocalStorage -> fallback 默认数据
+ *     （管理员登录后从云端拉取自己编辑后的最新数据）
  */
 export async function fetchSectionData<T>(
   section: string,
@@ -266,7 +282,12 @@ export async function fetchSectionData<T>(
   localStorageKey: string,
   fallback: T
 ): Promise<T> {
-  // 1. 尝试从 Supabase 读取
+  // 访客静态优先：非管理员且代码默认值存在时，直接返回代码数据，跳过云端与缓存查询
+  if (!isAdminSession() && fallback !== null && fallback !== undefined) {
+    return fallback;
+  }
+
+  // 以下为管理员路径：尝试从 Supabase 读取
   try {
     const cloudContent = await fetchSiteContent(section, fieldName);
     if (cloudContent && cloudContent.trim()) {

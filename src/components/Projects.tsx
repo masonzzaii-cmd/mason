@@ -239,6 +239,12 @@ export const Projects: React.FC = () => {
   // Async load from Supabase and local cache on mount or refreshTrigger
   useEffect(() => {
     let isMounted = true;
+    // 访客（非管理员）：直接使用代码中已固化的默认数据，确保国内秒开、内容确定，
+    // 不触发任何 Supabase 云端请求（国内访问不稳定会导致加载缓慢或命中旧缓存）。
+    if (!isAdmin) {
+      setProjects(sortProjectsByDateDesc(DEFAULT_PROJECTS_LIST));
+      return;
+    }
     (async () => {
       try {
         const savedData = await fetchSectionData<Project[]>(
@@ -260,7 +266,7 @@ export const Projects: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [refreshTrigger]);
+  }, [refreshTrigger, isAdmin]);
 
   // Modals state
   const [activeProject, setActiveProject] = useState<Project | null>(null);
